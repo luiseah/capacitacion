@@ -6,7 +6,6 @@ use App\Enums\PermissionName;
 use App\Enums\RequestPriority;
 use App\Enums\RequestTypeKey;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Requests\StoreServiceRequestRequest;
 use App\Http\Resources\ServiceRequestDetailResource;
 use App\Http\Resources\ServiceRequestResource;
 use App\Models\RequestType;
@@ -60,8 +59,7 @@ class RequestController extends Controller
      */
     public function form(RequestTypeKey $type): Response
     {
-        Gate::authorize('create', ServiceRequest::class);
-        abort_unless($this->isActive($type), 404);
+        Gate::authorize('create', [ServiceRequest::class, $type]);
 
         return Inertia::render('requests/form', [
             'types' => $this->activeTypes(),
@@ -71,25 +69,75 @@ class RequestController extends Controller
         ]);
     }
 
-    public function store(StoreServiceRequestRequest $request, RequestTypeKey $type): RedirectResponse
+    public function store(RequestTypeKey $type): RedirectResponse
     {
-        abort_unless($this->isActive($type), 404);
+        Gate::authorize('create', [ServiceRequest::class, $type]);
 
-        $submit = $request->validated('action') === 'submit';
+        $strategy = $type->strategy();
 
-        $serviceRequest = $type->strategy()->create(
-            $request->user(),
-            $request->safe()->only(['title', 'description', 'priority']),
-            $request->metadata(),
-            $submit,
-        );
+        // Resolving the type's form request authorizes and validates the input.
+        $request = app($strategy->formRequest());
+
+        $serviceRequest = $strategy->create($request);
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => $submit ? __('Request submitted.') : __('Request saved as draft.'),
+            'message' => $request->shouldSubmit() ? __('Request submitted.') : __('Request saved as draft.'),
         ]);
 
         return to_route('requests.show', $serviceRequest);
+    }
+
+    public function edit(ServiceRequest $serviceRequest): Response
+    {
+        Gate::authorize('update', $serviceRequest);
+
+        $type = $serviceRequest->type->key;
+
+        return Inertia::render('requests/form', [
+            'types' => [],
+            'type' => ['key' => $type->value, 'name' => $type->label()],
+            'fields' => array_map(fn ($field) => $field->toArray(), $type->strategy()->requestModel()::fields()),
+            'priorities' => array_map(fn (RequestPriority $p) => $p->value, RequestPriority::cases()),
+            'request' => [
+                'uuid' => $serviceRequest->uuid,
+                'title' => $serviceRequest->title,
+                'description' => $serviceRequest->description,
+                'priority' => $serviceRequest->priority->value,
+                'status' => $serviceRequest->status->value,
+                'metadata' => $serviceRequest->metadata ?? [],
+            ],
+        ]);
+    }
+
+    public function update(ServiceRequest $serviceRequest): RedirectResponse
+    {
+        Gate::authorize('update', $serviceRequest);
+
+        $strategy = $serviceRequest->type->key->strategy();
+
+        // Resolving the type's form request authorizes and validates the input.
+        $form = app($strategy->formRequest());
+
+        $strategy->update($serviceRequest, $form);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $form->shouldSubmit() ? __('Request submitted.') : __('Request updated.'),
+        ]);
+
+        return to_route('requests.show', $serviceRequest);
+    }
+
+    public function destroy(ServiceRequest $serviceRequest): RedirectResponse
+    {
+        Gate::authorize('delete', $serviceRequest);
+
+        $serviceRequest->delete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Request deleted.')]);
+
+        return to_route('requests.index');
     }
 
     public function show(ServiceRequest $serviceRequest): Response
@@ -100,12 +148,9 @@ class RequestController extends Controller
 
         return Inertia::render('requests/show', [
             'request' => (new ServiceRequestDetailResource($serviceRequest))->resolve(),
+            'canEdit' => request()->user()->can('update', $serviceRequest),
+            'canDelete' => request()->user()->can('delete', $serviceRequest),
         ]);
-    }
-
-    private function isActive(RequestTypeKey $key): bool
-    {
-        return RequestType::query()->where('key', $key->value)->where('is_active', true)->exists();
     }
 
     /**

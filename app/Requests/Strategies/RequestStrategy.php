@@ -2,8 +2,8 @@
 
 namespace App\Requests\Strategies;
 
+use App\Http\Requests\Requests\ServiceRequestFormRequest;
 use App\Models\ServiceRequest;
-use App\Models\User;
 
 interface RequestStrategy
 {
@@ -15,22 +15,23 @@ interface RequestStrategy
     public function requestModel(): string;
 
     /**
-     * Validate the metadata against the request model and return the validated data.
+     * Form request that authorizes and validates the creation of this type.
      *
-     * @param  array<string, mixed>  $metadata
-     * @return array<string, mixed>
-     *
-     * @throws \Illuminate\Validation\ValidationException
+     * @return class-string<ServiceRequestFormRequest>
      */
-    public function validate(array $metadata): array;
+    public function formRequest(): string;
 
     /**
-     * Persist a new request of this type and optionally submit it.
-     *
-     * @param  array{title: string, description?: ?string, priority: string}  $attributes
-     * @param  array<string, mixed>  $metadata  Already validated by `validate()`.
+     * Persist a new request of this type from an already validated form request
+     * and optionally submit it.
      */
-    public function create(User $requester, array $attributes, array $metadata, bool $submit = false): ServiceRequest;
+    public function create(ServiceRequestFormRequest $request): ServiceRequest;
+
+    /**
+     * Update an existing request from an already validated form request. A
+     * draft can be submitted in the same step.
+     */
+    public function update(ServiceRequest $request, ServiceRequestFormRequest $form): ServiceRequest;
 
     /**
      * Move a draft request to the submitted state and run type-specific logic.

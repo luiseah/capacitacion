@@ -19,16 +19,9 @@ class GradeChangeRequest extends ServiceRequest
             new Field('student_name', 'Student name', FieldType::Text, required: true),
             new Field('course', 'Course', FieldType::Text, required: true),
             new Field('academic_period', 'Academic period', FieldType::Text, required: true),
-            new Field('current_grade', 'Current grade', FieldType::Number, required: true, rules: ['min:0']),
-            new Field('requested_grade', 'Requested grade', FieldType::Number, required: true, rules: ['min:0']),
+            new Field('current_grade', 'Current grade', FieldType::Number, required: true),
+            new Field('requested_grade', 'Requested grade', FieldType::Number, required: true),
             new Field('reason', 'Reason', FieldType::Textarea, required: true),
-        ];
-    }
-
-    public static function extraRules(): array
-    {
-        return [
-            'requested_grade' => ['different:current_grade'],
         ];
     }
 }

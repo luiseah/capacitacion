@@ -59,3 +59,12 @@ export type Paginated<T> = {
     next_page_url: string | null;
     total: number;
 };
+
+export type RequestEditable = {
+    uuid: string;
+    title: string;
+    description: string | null;
+    priority: string;
+    status: RequestStatus;
+    metadata: Record<string, string | number | boolean | null>;
+};

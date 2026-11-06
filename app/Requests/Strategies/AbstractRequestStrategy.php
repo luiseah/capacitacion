@@ -3,28 +3,43 @@
 namespace App\Requests\Strategies;
 
 use App\Enums\RequestStatus;
+use App\Http\Requests\Requests\ServiceRequestFormRequest;
 use App\Models\ServiceRequest;
-use App\Models\User;
 
 abstract class AbstractRequestStrategy implements RequestStrategy
 {
-    public function validate(array $metadata): array
+    public function create(ServiceRequestFormRequest $request): ServiceRequest
     {
-        return $this->requestModel()::validateMetadata($metadata);
-    }
+        $attributes = $request->requestAttributes();
 
-    public function create(User $requester, array $attributes, array $metadata, bool $submit = false): ServiceRequest
-    {
-        $request = $this->requestModel()::create([
-            'requester_id' => $requester->id,
+        $serviceRequest = $this->requestModel()::create([
+            'requester_id' => $request->user()->id,
             'title' => $attributes['title'],
             'description' => $attributes['description'] ?? null,
             'priority' => $attributes['priority'],
             'status' => RequestStatus::Draft,
-            'metadata' => $metadata,
+            'metadata' => $request->metadata(),
         ]);
 
-        if ($submit) {
+        if ($request->shouldSubmit()) {
+            $this->submit($serviceRequest);
+        }
+
+        return $serviceRequest;
+    }
+
+    public function update(ServiceRequest $request, ServiceRequestFormRequest $form): ServiceRequest
+    {
+        $attributes = $form->requestAttributes();
+
+        $request->update([
+            'title' => $attributes['title'],
+            'description' => $attributes['description'] ?? null,
+            'priority' => $attributes['priority'],
+            'metadata' => $form->metadata(),
+        ]);
+
+        if ($form->shouldSubmit() && $request->status === RequestStatus::Draft) {
             $this->submit($request);
         }
 

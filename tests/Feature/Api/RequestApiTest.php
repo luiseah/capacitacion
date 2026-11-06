@@ -138,4 +138,54 @@ class RequestApiTest extends TestCase
         $this->getJson('/api/v1/requests')->assertOk()->assertJsonCount(1, 'data');
         $this->assertNotNull($owner);
     }
+
+    public function test_update_and_delete_a_draft_through_the_api(): void
+    {
+        $this->requester();
+        $this->postJson('/api/v1/requests/purchase', $this->payload());
+        $request = PurchaseRequest::firstOrFail();
+
+        $this->putJson("/api/v1/requests/{$request->uuid}", $this->payload(['title' => 'Updated', 'action' => 'submit']))
+            ->assertOk()
+            ->assertJsonPath('status', 'success')
+            ->assertJsonPath('message', 'Request updated')
+            ->assertJsonPath('data.title', 'Updated')
+            ->assertJsonPath('data.status', 'submitted');
+
+        // Once submitted the owner can no longer edit or delete it.
+        $this->putJson("/api/v1/requests/{$request->uuid}", $this->payload())->assertForbidden();
+        $this->deleteJson("/api/v1/requests/{$request->uuid}")->assertForbidden();
+    }
+
+    public function test_update_returns_422_and_delete_returns_success_for_a_draft(): void
+    {
+        $this->requester();
+        $this->postJson('/api/v1/requests/purchase', $this->payload());
+        $request = PurchaseRequest::firstOrFail();
+
+        $invalid = $this->payload();
+        unset($invalid['metadata']['quantity']);
+
+        $this->putJson("/api/v1/requests/{$request->uuid}", $invalid)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['metadata.quantity']);
+
+        $this->deleteJson("/api/v1/requests/{$request->uuid}")
+            ->assertOk()
+            ->assertJsonPath('status', 'success')
+            ->assertJsonPath('message', 'Request deleted');
+
+        $this->assertSoftDeleted('requests', ['id' => $request->id]);
+    }
+
+    public function test_the_spa_can_call_the_api_with_its_session_cookie(): void
+    {
+        $user = User::factory()->create()->assignRole(RoleName::Requester->value);
+
+        $this->actingAs($user)
+            ->withHeaders(['Referer' => 'http://localhost'])
+            ->getJson('/api/v1/requests')
+            ->assertOk()
+            ->assertJsonPath('status', 'success');
+    }
 }

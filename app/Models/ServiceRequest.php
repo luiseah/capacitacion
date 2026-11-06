@@ -11,14 +11,13 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Validator;
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 /**
  * Base model for every request. Each concrete type extends it, shares the
  * `requests` table (single-table inheritance keyed by `request_type_id`) and
- * declares its own fields and validation rules.
+ * declares the fields shown in the UI; validation lives in the type's form request.
  *
  * Not named `Request` to avoid clashing with Illuminate\Http\Request.
  */
@@ -60,49 +59,6 @@ class ServiceRequest extends Model implements AuditableContract
     public static function fields(): array
     {
         return [];
-    }
-
-    /**
-     * Rules that refine or add to the field rules, keyed by field key.
-     *
-     * @return array<string, array<int, mixed>>
-     */
-    public static function extraRules(): array
-    {
-        return [];
-    }
-
-    /**
-     * Full validation rules for the metadata: field rules plus extra rules.
-     *
-     * @return array<string, array<int, mixed>>
-     */
-    public static function rules(): array
-    {
-        $rules = [];
-
-        foreach (static::fields() as $field) {
-            $rules[$field->key] = $field->validationRules();
-        }
-
-        foreach (static::extraRules() as $key => $extra) {
-            $rules[$key] = [...($rules[$key] ?? []), ...$extra];
-        }
-
-        return $rules;
-    }
-
-    /**
-     * Validate metadata against this type and return only the validated data.
-     *
-     * @param  array<string, mixed>  $metadata
-     * @return array<string, mixed>
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
-    public static function validateMetadata(array $metadata): array
-    {
-        return Validator::make($metadata, static::rules())->validate();
     }
 
     protected static function booted(): void

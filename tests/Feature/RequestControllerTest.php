@@ -172,4 +172,175 @@ class RequestControllerTest extends TestCase
         $this->actingAs($superadmin)->get(route('requests.index'))
             ->assertInertia(fn (Assert $page) => $page->has('requests.data', 1));
     }
+
+    public function test_each_type_validates_cross_field_rules_with_its_own_form_request(): void
+    {
+        $user = $this->requester();
+
+        $this->actingAs($user)->post(route('requests.store', 'work_permit'), [
+            'title' => 'Day off',
+            'priority' => 'normal',
+            'metadata' => [
+                'permit_type' => 'vacation',
+                'start_at' => '2026-12-01 08:00:00',
+                'end_at' => '2026-12-01 07:00:00',
+                'reason' => 'Rest',
+            ],
+        ])->assertSessionHasErrors(['metadata.permit_type', 'metadata.end_at']);
+
+        $this->actingAs($user)->post(route('requests.store', 'grade_change'), [
+            'title' => 'Fix grade',
+            'priority' => 'normal',
+            'metadata' => [
+                'student_name' => 'Ana',
+                'course' => 'Math',
+                'academic_period' => '2026-1',
+                'current_grade' => 3,
+                'requested_grade' => 3,
+                'reason' => 'Calculation error',
+            ],
+        ])->assertSessionHasErrors(['metadata.requested_grade']);
+
+        $this->actingAs($user)->post(route('requests.store', 'book_reservation'), [
+            'title' => 'Book',
+            'priority' => 'normal',
+            'metadata' => [
+                'book_title' => 'Dune',
+                'copies' => 1,
+                'pickup_date' => now()->addDays(5)->toDateString(),
+                'return_date' => now()->addDays(2)->toDateString(),
+            ],
+        ])->assertSessionHasErrors(['metadata.return_date']);
+
+        $this->assertSame(0, ServiceRequest::count());
+    }
+
+    public function test_valid_work_permit_is_stored_without_unknown_metadata_keys(): void
+    {
+        $this->actingAs($this->requester())->post(route('requests.store', 'work_permit'), [
+            'title' => 'Day off',
+            'priority' => 'normal',
+            'metadata' => [
+                'permit_type' => 'medical',
+                'start_at' => '2026-12-01 08:00:00',
+                'end_at' => '2026-12-01 17:00:00',
+                'reason' => 'Doctor appointment',
+                'injected' => 'ignored',
+            ],
+        ])->assertSessionHasNoErrors();
+
+        $request = ServiceRequest::firstOrFail();
+        $this->assertSame('medical', $request->metadata['permit_type']);
+        $this->assertArrayNotHasKey('injected', $request->metadata);
+    }
+
+    private function draft(User $owner, array $overrides = []): PurchaseRequest
+    {
+        $this->actingAs($owner)->post(route('requests.store', 'purchase'), $this->purchasePayload($overrides));
+
+        return PurchaseRequest::latest('id')->firstOrFail();
+    }
+
+    public function test_owner_can_open_the_edit_form_of_a_draft_with_stored_values(): void
+    {
+        $owner = $this->requester();
+        $request = $this->draft($owner);
+
+        $this->actingAs($owner)->get(route('requests.edit', $request))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('requests/form')
+                ->where('type.key', 'purchase')
+                ->where('request.title', 'Laptops')
+                ->where('request.metadata.currency', 'USD')
+                ->has('fields', 7));
+    }
+
+    public function test_owner_can_update_a_draft_and_submit_it(): void
+    {
+        $owner = $this->requester();
+        $request = $this->draft($owner);
+
+        $payload = $this->purchasePayload(['title' => 'Better laptops', 'action' => 'submit']);
+        $payload['metadata']['quantity'] = 20;
+
+        $this->actingAs($owner)->put(route('requests.update', $request), $payload)
+            ->assertRedirect(route('requests.show', $request))
+            ->assertSessionHasNoErrors();
+
+        $request->refresh();
+        $this->assertSame('Better laptops', $request->title);
+        $this->assertSame(20, $request->metadata['quantity']);
+        $this->assertSame(RequestStatus::Submitted, $request->status);
+    }
+
+    public function test_update_validates_with_the_type_form_request(): void
+    {
+        $owner = $this->requester();
+        $request = $this->draft($owner);
+
+        $payload = $this->purchasePayload();
+        $payload['metadata']['currency'] = 'XXX';
+
+        $this->actingAs($owner)->put(route('requests.update', $request), $payload)
+            ->assertSessionHasErrors(['metadata.currency']);
+
+        $this->assertSame('USD', $request->fresh()->metadata['currency']);
+    }
+
+    public function test_owner_cannot_edit_or_delete_a_submitted_request(): void
+    {
+        $owner = $this->requester();
+        $request = $this->draft($owner, ['action' => 'submit']);
+
+        $this->actingAs($owner)->get(route('requests.edit', $request))->assertForbidden();
+        $this->actingAs($owner)->put(route('requests.update', $request), $this->purchasePayload())->assertForbidden();
+        $this->actingAs($owner)->delete(route('requests.destroy', $request))->assertForbidden();
+    }
+
+    public function test_other_users_cannot_edit_or_delete(): void
+    {
+        $request = $this->draft($this->requester());
+        $other = $this->requester();
+
+        $this->actingAs($other)->get(route('requests.edit', $request))->assertForbidden();
+        $this->actingAs($other)->delete(route('requests.destroy', $request))->assertForbidden();
+    }
+
+    public function test_managers_can_edit_a_submitted_request(): void
+    {
+        $request = $this->draft($this->requester(), ['action' => 'submit']);
+        $admin = User::factory()->create()->assignRole(RoleName::Admin->value);
+
+        $this->actingAs($admin)->put(route('requests.update', $request), $this->purchasePayload(['title' => 'Edited by admin']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('Edited by admin', $request->fresh()->title);
+        $this->assertSame(RequestStatus::Submitted, $request->fresh()->status);
+    }
+
+    public function test_owner_can_delete_a_draft(): void
+    {
+        $owner = $this->requester();
+        $request = $this->draft($owner);
+
+        $this->actingAs($owner)->delete(route('requests.destroy', $request))
+            ->assertRedirect(route('requests.index'));
+
+        $this->assertSoftDeleted('requests', ['id' => $request->id]);
+        $this->actingAs($owner)->get(route('requests.show', $request))->assertNotFound();
+    }
+
+    public function test_show_exposes_edit_and_delete_abilities(): void
+    {
+        $owner = $this->requester();
+        $draft = $this->draft($owner);
+        $submitted = $this->draft($owner, ['action' => 'submit']);
+
+        $this->actingAs($owner)->get(route('requests.show', $draft))
+            ->assertInertia(fn (Assert $page) => $page->where('canEdit', true)->where('canDelete', true));
+
+        $this->actingAs($owner)->get(route('requests.show', $submitted))
+            ->assertInertia(fn (Assert $page) => $page->where('canEdit', false)->where('canDelete', false));
+    }
 }

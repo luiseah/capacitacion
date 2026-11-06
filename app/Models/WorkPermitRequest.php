@@ -23,11 +23,4 @@ class WorkPermitRequest extends ServiceRequest
             new Field('has_supporting_document', 'Has supporting document', FieldType::Boolean),
         ];
     }
-
-    public static function extraRules(): array
-    {
-        return [
-            'end_at' => ['after:start_at'],
-        ];
-    }
 }

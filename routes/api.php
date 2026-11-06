@@ -15,4 +15,6 @@ Route::prefix('v1')->name('api.v1.')->middleware('auth:sanctum')->group(function
     Route::get('requests', [RequestController::class, 'index'])->name('requests.index');
     Route::post('requests/{type}', [RequestController::class, 'store'])->name('requests.store');
     Route::get('requests/{serviceRequest}', [RequestController::class, 'show'])->name('requests.show');
+    Route::put('requests/{serviceRequest}', [RequestController::class, 'update'])->name('requests.update');
+    Route::delete('requests/{serviceRequest}', [RequestController::class, 'destroy'])->name('requests.destroy');
 });

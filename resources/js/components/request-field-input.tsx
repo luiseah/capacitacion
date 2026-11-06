@@ -23,9 +23,11 @@ const inputTypes = {
 export function RequestFieldInput({
     field,
     error,
+    defaultValue,
 }: {
     field: RequestField;
     error?: string;
+    defaultValue?: string | boolean;
 }) {
     const name = `metadata[${field.key}]`;
     const id = `metadata-${field.key}`;
@@ -39,7 +41,12 @@ export function RequestFieldInput({
         >
             {field.type === 'boolean' ? (
                 <div className="flex items-center gap-2">
-                    <Checkbox id={id} name={name} value="1" />
+                    <Checkbox
+                        id={id}
+                        name={name}
+                        value="1"
+                        defaultChecked={defaultValue === true}
+                    />
                     <Label htmlFor={id}>{field.label}</Label>
                 </div>
             ) : (
@@ -54,12 +61,20 @@ export function RequestFieldInput({
                             id={id}
                             name={name}
                             rows={4}
+                            defaultValue={
+                                typeof defaultValue === 'string' ? defaultValue : undefined
+                            }
                             className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                         />
                     )}
 
                     {field.type === 'select' && (
-                        <Select name={name}>
+                        <Select
+                            name={name}
+                            defaultValue={
+                                typeof defaultValue === 'string' ? defaultValue : undefined
+                            }
+                        >
                             <SelectTrigger id={id} className="w-full">
                                 <SelectValue placeholder="Select an option" />
                             </SelectTrigger>
@@ -77,6 +92,9 @@ export function RequestFieldInput({
                         <Input
                             id={id}
                             name={name}
+                            defaultValue={
+                                typeof defaultValue === 'string' ? defaultValue : undefined
+                            }
                             type={
                                 inputTypes[field.type as keyof typeof inputTypes]
                             }

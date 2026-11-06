@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\RequestStatus;
 use App\Enums\RequestTypeKey;
+use App\Http\Requests\Requests\ServiceRequestFormRequest;
 use App\Models\BookReservationRequest;
 use App\Models\GradeChangeRequest;
 use App\Models\PurchaseRequest;
@@ -13,7 +14,6 @@ use App\Models\User;
 use App\Models\WorkPermitRequest;
 use Database\Seeders\RequestTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class RequestStrategyTest extends TestCase
@@ -51,38 +51,8 @@ class RequestStrategyTest extends TestCase
             $this->assertSame($expected[$key->value], $model);
             $this->assertSame($key, $model::typeKey());
             $this->assertNotEmpty($model::fields());
+            $this->assertTrue(is_subclass_of($key->strategy()->formRequest(), ServiceRequestFormRequest::class));
         }
-    }
-
-    public function test_work_permit_validates_fields_and_extra_rules(): void
-    {
-        $strategy = RequestTypeKey::WorkPermit->strategy();
-
-        $valid = [
-            'permit_type' => 'medical',
-            'start_at' => '2026-12-01 08:00:00',
-            'end_at' => '2026-12-01 17:00:00',
-            'reason' => 'Doctor appointment',
-        ];
-
-        $this->assertSame($valid, $strategy->validate($valid));
-
-        $this->expectException(ValidationException::class);
-        $strategy->validate([...$valid, 'end_at' => '2026-12-01 07:00:00', 'permit_type' => 'vacation']);
-    }
-
-    public function test_grade_change_requires_a_different_grade(): void
-    {
-        $this->expectException(ValidationException::class);
-
-        GradeChangeRequest::validateMetadata([
-            'student_name' => 'Ana',
-            'course' => 'Math',
-            'academic_period' => '2026-1',
-            'current_grade' => 3,
-            'requested_grade' => 3,
-            'reason' => 'Calculation error',
-        ]);
     }
 
     public function test_concrete_models_are_scoped_to_their_type(): void
@@ -114,5 +84,30 @@ class RequestStrategyTest extends TestCase
 
         $this->assertSame(RequestStatus::Submitted, $request->fresh()->status);
         $this->assertNotNull($request->fresh()->submitted_at);
+    }
+
+    public function test_form_request_rules_match_the_fields_shown_in_the_ui(): void
+    {
+        foreach (RequestTypeKey::cases() as $key) {
+            $strategy = $key->strategy();
+            $rules = (new ($strategy->formRequest()))->rules();
+
+            $metadataRules = array_filter($rules, fn ($_, $name) => str_starts_with($name, 'metadata.'), ARRAY_FILTER_USE_BOTH);
+            $fields = collect($strategy->requestModel()::fields());
+
+            $this->assertEqualsCanonicalizing(
+                $fields->map(fn ($field) => "metadata.{$field->key}")->all(),
+                array_keys($metadataRules),
+                "{$key->value}: fields and rules differ",
+            );
+
+            foreach ($fields as $field) {
+                $this->assertSame(
+                    $field->required,
+                    in_array('required', $rules["metadata.{$field->key}"], true),
+                    "{$key->value}.{$field->key}: required flag differs from its rules",
+                );
+            }
+        }
     }
 }
