@@ -21,6 +21,10 @@ class ServiceRequestDetailResource extends ServiceRequestResource
             ...parent::toArray($request),
             'description' => $this->description,
             'submitted_at' => $this->submitted_at?->toIso8601String(),
+            'abilities' => [
+                'update' => (bool) $request->user()?->can('update', $this->resource),
+                'delete' => (bool) $request->user()?->can('delete', $this->resource),
+            ],
             'details' => array_map(fn ($field) => [
                 'key' => $field->key,
                 'label' => $field->label,

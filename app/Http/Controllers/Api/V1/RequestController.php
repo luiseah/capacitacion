@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\PermissionName;
 use App\Enums\RequestTypeKey;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ServiceRequestDetailResource;
@@ -22,13 +21,15 @@ class RequestController extends Controller
         $user = $request->user();
 
         $requests = ServiceRequest::query()
-            ->with(['type', 'requester'])
-            ->when(! $user->can(PermissionName::ViewAnyRequests->value), fn ($q) => $q->where('requester_id', $user->id))
-            ->latest()
+            ->withListRelations()
+            ->visibleTo($user)
+            ->newest()
             ->paginate(15)
             ->through(fn (ServiceRequest $r) => (new ServiceRequestResource($r))->resolve());
 
-        return Response::api($requests, __('Successful'));
+        return Response::api($requests, __('Successful'), [
+            'abilities' => ['create' => $user->can('create', ServiceRequest::class)],
+        ]);
     }
 
     public function store(RequestTypeKey $type): JsonResponse

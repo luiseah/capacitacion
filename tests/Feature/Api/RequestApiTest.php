@@ -6,6 +6,7 @@ use App\Enums\RequestStatus;
 use App\Enums\RoleName;
 use App\Models\PurchaseRequest;
 use App\Models\RequestType;
+use App\Models\ServiceRequest;
 use App\Models\User;
 use Database\Seeders\RequestTypeSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -187,5 +188,105 @@ class RequestApiTest extends TestCase
             ->getJson('/api/v1/requests')
             ->assertOk()
             ->assertJsonPath('status', 'success');
+    }
+
+    public function test_each_type_validates_cross_field_rules_with_its_own_form_request(): void
+    {
+        $this->requester();
+
+        $this->postJson('/api/v1/requests/work_permit', [
+            'title' => 'Day off',
+            'priority' => 'normal',
+            'metadata' => [
+                'permit_type' => 'vacation',
+                'start_at' => '2026-12-01 08:00:00',
+                'end_at' => '2026-12-01 07:00:00',
+                'reason' => 'Rest',
+            ],
+        ])->assertJsonValidationErrors(['metadata.permit_type', 'metadata.end_at']);
+
+        $this->postJson('/api/v1/requests/grade_change', [
+            'title' => 'Fix grade',
+            'priority' => 'normal',
+            'metadata' => [
+                'student_name' => 'Ana',
+                'course' => 'Math',
+                'academic_period' => '2026-1',
+                'current_grade' => 3,
+                'requested_grade' => 3,
+                'reason' => 'Calculation error',
+            ],
+        ])->assertJsonValidationErrors(['metadata.requested_grade']);
+
+        $this->postJson('/api/v1/requests/book_reservation', [
+            'title' => 'Book',
+            'priority' => 'normal',
+            'metadata' => [
+                'book_title' => 'Dune',
+                'copies' => 1,
+                'pickup_date' => now()->addDays(5)->toDateString(),
+                'return_date' => now()->addDays(2)->toDateString(),
+            ],
+        ])->assertJsonValidationErrors(['metadata.return_date']);
+
+        $this->assertSame(0, ServiceRequest::count());
+    }
+
+    public function test_unknown_metadata_keys_are_not_stored(): void
+    {
+        $this->requester();
+
+        $this->postJson('/api/v1/requests/work_permit', [
+            'title' => 'Day off',
+            'priority' => 'normal',
+            'metadata' => [
+                'permit_type' => 'medical',
+                'start_at' => '2026-12-01 08:00:00',
+                'end_at' => '2026-12-01 17:00:00',
+                'reason' => 'Doctor appointment',
+                'injected' => 'ignored',
+            ],
+        ])->assertCreated();
+
+        $this->assertArrayNotHasKey('injected', ServiceRequest::firstOrFail()->metadata);
+    }
+
+    public function test_inactive_types_are_not_found_when_creating(): void
+    {
+        $this->requester();
+        RequestType::where('key', 'purchase')->update(['is_active' => false]);
+
+        $this->postJson('/api/v1/requests/purchase', $this->payload())->assertNotFound();
+    }
+
+    public function test_managers_can_edit_a_submitted_request_and_abilities_reflect_it(): void
+    {
+        $this->requester();
+        $this->postJson('/api/v1/requests/purchase', $this->payload(['action' => 'submit']));
+        $uuid = PurchaseRequest::firstOrFail()->uuid;
+
+        // The owner can no longer change a submitted request.
+        $this->getJson("/api/v1/requests/{$uuid}")
+            ->assertJsonPath('data.abilities.update', false)
+            ->assertJsonPath('data.abilities.delete', false);
+
+        Sanctum::actingAs(User::factory()->create()->assignRole(RoleName::Admin->value));
+
+        $this->getJson("/api/v1/requests/{$uuid}")->assertJsonPath('data.abilities.update', true);
+        $this->putJson("/api/v1/requests/{$uuid}", $this->payload(['title' => 'Edited by admin']))
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Edited by admin')
+            ->assertJsonPath('data.status', 'submitted');
+    }
+
+    public function test_list_and_types_expose_what_the_pages_need(): void
+    {
+        $this->requester();
+
+        $this->getJson('/api/v1/requests')->assertJsonPath('abilities.create', true);
+        $this->getJson('/api/v1/request-types')->assertJsonPath('priorities', ['low', 'normal', 'high', 'urgent']);
+
+        Sanctum::actingAs(User::factory()->create());
+        $this->getJson('/api/v1/requests')->assertForbidden();
     }
 }

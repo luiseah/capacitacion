@@ -12,11 +12,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [RequestController::class, 'index'])->name('index');
         Route::get('create', [RequestController::class, 'create'])->name('create');
         Route::get('{type}/create', [RequestController::class, 'form'])->name('form');
-        Route::post('{type}', [RequestController::class, 'store'])->name('store');
         Route::get('{serviceRequest}', [RequestController::class, 'show'])->name('show');
         Route::get('{serviceRequest}/edit', [RequestController::class, 'edit'])->name('edit');
-        Route::put('{serviceRequest}', [RequestController::class, 'update'])->name('update');
-        Route::delete('{serviceRequest}', [RequestController::class, 'destroy'])->name('destroy');
     });
 });
 

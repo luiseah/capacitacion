@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\RequestPriority;
 use App\Enums\RequestTypeKey;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\RequestTypeResource;
@@ -15,7 +16,9 @@ class RequestTypeController extends Controller
     {
         $types = RequestType::query()->where('is_active', true)->orderBy('id')->get();
 
-        return Response::api(RequestTypeResource::collection($types), __('Successful'));
+        return Response::api(RequestTypeResource::collection($types), __('Successful'), [
+            'priorities' => array_map(fn (RequestPriority $priority) => $priority->value, RequestPriority::cases()),
+        ]);
     }
 
     public function show(RequestTypeKey $type): JsonResponse
