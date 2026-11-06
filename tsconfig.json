@@ -4,13 +4,22 @@
         "module": "ESNext",
         "moduleResolution": "bundler",
         "lib": ["ESNext", "DOM", "DOM.Iterable"],
+        "jsx": "react-jsx",
         "strict": true,
         "noEmit": true,
         "isolatedModules": true,
         "skipLibCheck": true,
         "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
-        "types": ["vite/client"]
+        "types": ["vite/client"],
+        "paths": {
+            "@/*": ["./resources/js/*"]
+        }
     },
-    "include": ["resources/js/**/*.ts", "resources/js/**/*.d.ts"]
+    "include": [
+        "resources/js/**/*.ts",
+        "resources/js/**/*.tsx",
+        "resources/js/**/*.d.ts"
+    ]
 }

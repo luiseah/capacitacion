@@ -59,17 +59,12 @@ services:
       - network
 
   frontend:
-    image: node:current-alpine
-    restart: unless-stopped
+    <<: *app_base
+    container_name: node
     working_dir: /var/www
     profiles:
       - local
-    volumes:
-      - .:/var/www
-    networks:
-      - network
-    command: >
-      sh -c "npm run dev"
+    command: [ "pnpm", "dev" ]
     ports:
       - "5173:5173"
     depends_on:
