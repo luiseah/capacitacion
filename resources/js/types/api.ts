@@ -22,12 +22,14 @@ export type PaginationMeta = {
     links?: { url: string | null; label: string; active: boolean }[];
 };
 
-export type PaginatedApiResponse<T> = ApiResponse<T[]> & PaginationMeta;
+export type PaginatedApiResponse<T> = ApiResponse<T[]> &
+    PaginationMeta & { abilities: { create: boolean } };
 
 /** A page of items as exposed by the services (envelope already unwrapped). */
 export type PageResult<T> = {
     items: T[];
     meta: PaginationMeta;
+    abilities: { create: boolean };
 };
 
 export type ApiRequestTypeDefinition = {
@@ -51,12 +53,19 @@ export type ApiRequestSummary = {
 export type ApiRequestDetail = ApiRequestSummary & {
     description: string | null;
     submitted_at: string | null;
+    abilities: { update: boolean; delete: boolean };
     details: {
         key: string;
         label: string;
         type: FieldType;
         value: string | number | boolean | null;
     }[];
+};
+
+/** Request types with their fields plus the priorities a request can have. */
+export type RequestTypeCatalog = {
+    types: ApiRequestTypeDefinition[];
+    priorities: string[];
 };
 
 export type RequestPayload = {

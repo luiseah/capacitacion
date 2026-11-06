@@ -24,13 +24,16 @@ describe('RequestService', () => {
             current_page: 2,
             last_page: 3,
             total: 31,
+            abilities: { create: true },
         });
 
         const page = await new RequestService(client).all({ page: 2 });
 
         expect(page.items).toEqual([{ uuid: 'a' }]);
         expect(page.meta).toMatchObject({ current_page: 2, last_page: 3, total: 31 });
+        expect(page.abilities).toEqual({ create: true });
         expect(page.meta).not.toHaveProperty('status');
+        expect(page.meta).not.toHaveProperty('abilities');
         expect(request).toHaveBeenCalledWith(
             expect.objectContaining({ method: 'GET', url: '/api/v1/requests', params: { page: 2 } }),
         );
@@ -65,11 +68,18 @@ describe('RequestService', () => {
 });
 
 describe('RequestTypeService', () => {
-    it('all() and show() return the unwrapped data', async () => {
-        const { client, request } = fakeClient({ status: 'success', data: [{ key: 'purchase' }] });
+    it('all() returns the types with the priorities and show() the unwrapped type', async () => {
+        const { client, request } = fakeClient({
+            status: 'success',
+            data: [{ key: 'purchase' }],
+            priorities: ['low', 'normal'],
+        });
         const service = new RequestTypeService(client);
 
-        await expect(service.all()).resolves.toEqual([{ key: 'purchase' }]);
+        await expect(service.all()).resolves.toEqual({
+            types: [{ key: 'purchase' }],
+            priorities: ['low', 'normal'],
+        });
         await service.show('work_permit');
 
         expect(request).toHaveBeenLastCalledWith(

@@ -80,13 +80,13 @@ describe('queries', () => {
     });
 
     it('useRequestTypes and useRequestType load request types', async () => {
-        vi.mocked(requestTypeService.all).mockResolvedValue([{ key: 'purchase' }] as never);
+        vi.mocked(requestTypeService.all).mockResolvedValue({ types: [{ key: 'purchase' }], priorities: ['low'] } as never);
         vi.mocked(requestTypeService.show).mockResolvedValue({ key: 'purchase' } as never);
 
         const list = renderHook(() => useRequestTypes(), { wrapper });
         const one = renderHook(() => useRequestType('purchase'), { wrapper });
 
-        await waitFor(() => expect(list.result.current.data).toEqual([{ key: 'purchase' }]));
+        await waitFor(() => expect(list.result.current.data?.types).toEqual([{ key: 'purchase' }]));
         await waitFor(() => expect(one.result.current.data).toEqual({ key: 'purchase' }));
     });
 

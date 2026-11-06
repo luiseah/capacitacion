@@ -1,5 +1,6 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { RequestStatusBadge } from '@/components/request-status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,10 +13,14 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { destroy, edit, index } from '@/routes/requests';
-import type { RequestDetail, RequestShow } from '@/types';
+import { useDeleteRequest } from '@/hooks/requests/use-request-mutations';
+import { useRequest } from '@/hooks/requests/use-request-queries';
+import { edit, index } from '@/routes/requests';
+import type { ApiRequestDetail } from '@/types';
 
-function formatValue(detail: RequestDetail): string {
+type Detail = ApiRequestDetail['details'][number];
+
+function formatValue(detail: Detail): string {
     if (detail.value === null || detail.value === '') {
         return '—';
     }
@@ -35,15 +40,27 @@ function formatValue(detail: RequestDetail): string {
     return String(detail.value);
 }
 
-export default function RequestsShow({
-    request,
-    canEdit,
-    canDelete,
-}: {
-    request: RequestShow;
-    canEdit: boolean;
-    canDelete: boolean;
-}) {
+export default function RequestsShow({ requestUuid }: { requestUuid: string }) {
+    const { data: request, isPending, isError, error } = useRequest(requestUuid);
+    const deletion = useDeleteRequest();
+
+    if (isPending) {
+        return <p className="p-4 text-sm text-muted-foreground">Loading…</p>;
+    }
+
+    if (isError) {
+        return <p className="p-4 text-sm text-red-600 dark:text-red-400">{error.message}</p>;
+    }
+
+    const destroy = () =>
+        deletion.mutate(request.uuid, {
+            onSuccess: () => {
+                toast.success('Request deleted.');
+                router.visit(index());
+            },
+            onError: (failure) => toast.error(failure.message),
+        });
+
     return (
         <>
             <Head title={request.title} />
@@ -68,7 +85,7 @@ export default function RequestsShow({
                     </div>
 
                     <div className="flex shrink-0 gap-2">
-                        {canEdit && (
+                        {request.abilities.update && (
                             <Button variant="outline" asChild>
                                 <Link href={edit(request.uuid)}>
                                     <Pencil /> Edit
@@ -76,7 +93,7 @@ export default function RequestsShow({
                             </Button>
                         )}
 
-                        {canDelete && (
+                        {request.abilities.delete && (
                             <Dialog>
                                 <DialogTrigger asChild>
                                     <Button variant="destructive">
@@ -91,27 +108,20 @@ export default function RequestsShow({
                                             removed from your requests.
                                         </DialogDescription>
                                     </DialogHeader>
-                                    <Form action={destroy(request.uuid)}>
-                                        {({ processing }) => (
-                                            <DialogFooter className="gap-2">
-                                                <DialogClose asChild>
-                                                    <Button
-                                                        type="button"
-                                                        variant="secondary"
-                                                    >
-                                                        Cancel
-                                                    </Button>
-                                                </DialogClose>
-                                                <Button
-                                                    type="submit"
-                                                    variant="destructive"
-                                                    disabled={processing}
-                                                >
-                                                    Delete
-                                                </Button>
-                                            </DialogFooter>
-                                        )}
-                                    </Form>
+                                    <DialogFooter className="gap-2">
+                                        <DialogClose asChild>
+                                            <Button type="button" variant="secondary">
+                                                Cancel
+                                            </Button>
+                                        </DialogClose>
+                                        <Button
+                                            variant="destructive"
+                                            disabled={deletion.isPending}
+                                            onClick={destroy}
+                                        >
+                                            Delete
+                                        </Button>
+                                    </DialogFooter>
                                 </DialogContent>
                             </Dialog>
                         )}
@@ -120,7 +130,7 @@ export default function RequestsShow({
 
                 <dl className="grid gap-4 rounded-xl border p-4 sm:grid-cols-2">
                     {request.details.map((detail) => (
-                        <div key={detail.label}>
+                        <div key={detail.key}>
                             <dt className="text-sm text-muted-foreground">
                                 {detail.label}
                             </dt>

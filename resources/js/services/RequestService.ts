@@ -28,9 +28,15 @@ export default class RequestService extends AbstractService {
             signal: options.signal,
         });
 
-        const { data, status: _status, message: _message, ...meta } = response;
+        const {
+            data,
+            abilities,
+            status: _status,
+            message: _message,
+            ...meta
+        } = response;
 
-        return { items: data, meta };
+        return { items: data, meta, abilities };
     }
 
     /**

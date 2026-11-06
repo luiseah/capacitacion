@@ -1,17 +1,17 @@
 import { Head, Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
+import { useState } from 'react';
 import { RequestStatusBadge } from '@/components/request-status-badge';
 import { Button } from '@/components/ui/button';
+import { useRequests } from '@/hooks/requests/use-request-queries';
 import { create, index, show } from '@/routes/requests';
-import type { Paginated, RequestSummary } from '@/types';
 
-export default function RequestsIndex({
-    requests,
-    canCreate,
-}: {
-    requests: Paginated<RequestSummary>;
-    canCreate: boolean;
-}) {
+export default function RequestsIndex() {
+    const [page, setPage] = useState(1);
+    const { data, isPending, isError, error, isPlaceholderData } = useRequests({ page });
+
+    const meta = data?.meta;
+
     return (
         <>
             <Head title="Requests" />
@@ -21,7 +21,7 @@ export default function RequestsIndex({
                     <h1 className="text-xl font-semibold tracking-tight">
                         Requests
                     </h1>
-                    {canCreate && (
+                    {data?.abilities.create && (
                         <Button asChild>
                             <Link href={create()}>
                                 <Plus /> New request
@@ -42,18 +42,31 @@ export default function RequestsIndex({
                                 <th className="p-3 font-medium">Created</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {requests.data.length === 0 && (
+                        <tbody
+                            className={isPlaceholderData ? 'opacity-60' : undefined}
+                        >
+                            {isPending && (
                                 <tr>
-                                    <td
-                                        colSpan={6}
-                                        className="p-6 text-center text-muted-foreground"
-                                    >
+                                    <td colSpan={6} className="p-6 text-center text-muted-foreground">
+                                        Loading…
+                                    </td>
+                                </tr>
+                            )}
+                            {isError && (
+                                <tr>
+                                    <td colSpan={6} className="p-6 text-center text-red-600 dark:text-red-400">
+                                        {error.message}
+                                    </td>
+                                </tr>
+                            )}
+                            {data?.items.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="p-6 text-center text-muted-foreground">
                                         No requests yet.
                                     </td>
                                 </tr>
                             )}
-                            {requests.data.map((item) => (
+                            {data?.items.map((item) => (
                                 <tr key={item.uuid} className="border-t">
                                     <td className="p-3">
                                         <Link
@@ -65,18 +78,12 @@ export default function RequestsIndex({
                                     </td>
                                     <td className="p-3">{item.type}</td>
                                     <td className="p-3">{item.requester}</td>
-                                    <td className="p-3 capitalize">
-                                        {item.priority}
+                                    <td className="p-3 capitalize">{item.priority}</td>
+                                    <td className="p-3">
+                                        <RequestStatusBadge status={item.status} />
                                     </td>
                                     <td className="p-3">
-                                        <RequestStatusBadge
-                                            status={item.status}
-                                        />
-                                    </td>
-                                    <td className="p-3">
-                                        {new Date(
-                                            item.created_at,
-                                        ).toLocaleDateString()}
+                                        {new Date(item.created_at).toLocaleDateString()}
                                     </td>
                                 </tr>
                             ))}
@@ -84,26 +91,26 @@ export default function RequestsIndex({
                     </table>
                 </div>
 
-                {requests.last_page > 1 && (
+                {meta && meta.last_page > 1 && (
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">
-                            Page {requests.current_page} of {requests.last_page}
+                            Page {meta.current_page} of {meta.last_page}
                         </span>
                         <div className="flex gap-2">
-                            {requests.prev_page_url && (
-                                <Button variant="outline" asChild>
-                                    <Link href={requests.prev_page_url}>
-                                        Previous
-                                    </Link>
-                                </Button>
-                            )}
-                            {requests.next_page_url && (
-                                <Button variant="outline" asChild>
-                                    <Link href={requests.next_page_url}>
-                                        Next
-                                    </Link>
-                                </Button>
-                            )}
+                            <Button
+                                variant="outline"
+                                disabled={page <= 1}
+                                onClick={() => setPage((current) => current - 1)}
+                            >
+                                Previous
+                            </Button>
+                            <Button
+                                variant="outline"
+                                disabled={page >= meta.last_page || isPlaceholderData}
+                                onClick={() => setPage((current) => current + 1)}
+                            >
+                                Next
+                            </Button>
                         </div>
                     </div>
                 )}
