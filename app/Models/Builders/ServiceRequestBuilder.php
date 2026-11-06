@@ -18,12 +18,12 @@ use Illuminate\Database\Eloquent\Builder;
 class ServiceRequestBuilder extends Builder
 {
     /**
-     * Only the requests the user may see: their own, unless they can view any.
+     * Only the requests the user may see: their own, unless they can index every request.
      */
     public function visibleTo(User $user): static
     {
         return $this->unless(
-            $user->can(PermissionName::ViewAnyRequests->value),
+            $user->can(PermissionName::IndexRequests->value),
             fn (self $query) => $query->where('requester_id', $user->id),
         );
     }

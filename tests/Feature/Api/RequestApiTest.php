@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Enums\RequestStatus;
+use App\Enums\PermissionName;
 use App\Enums\RoleName;
 use App\Models\PurchaseRequest;
 use App\Models\RequestType;
@@ -135,7 +136,7 @@ class RequestApiTest extends TestCase
         $this->getJson("/api/v1/requests/{$uuid}")->assertForbidden();
         $this->getJson('/api/v1/requests')->assertOk()->assertJsonCount(0, 'data');
 
-        Sanctum::actingAs(User::factory()->create()->assignRole(RoleName::Admin->value));
+        Sanctum::actingAs(User::factory()->create()->givePermissionTo(PermissionName::IndexRequests->value, PermissionName::ShowRequests->value));
         $this->getJson('/api/v1/requests')->assertOk()->assertJsonCount(1, 'data');
         $this->assertNotNull($owner);
     }
@@ -259,7 +260,7 @@ class RequestApiTest extends TestCase
         $this->postJson('/api/v1/requests/purchase', $this->payload())->assertNotFound();
     }
 
-    public function test_managers_can_edit_a_submitted_request_and_abilities_reflect_it(): void
+    public function test_users_with_the_update_permission_can_edit_a_submitted_request(): void
     {
         $this->requester();
         $this->postJson('/api/v1/requests/purchase', $this->payload(['action' => 'submit']));
@@ -270,7 +271,7 @@ class RequestApiTest extends TestCase
             ->assertJsonPath('data.abilities.update', false)
             ->assertJsonPath('data.abilities.delete', false);
 
-        Sanctum::actingAs(User::factory()->create()->assignRole(RoleName::Admin->value));
+        Sanctum::actingAs(User::factory()->create()->givePermissionTo(PermissionName::ShowRequests->value, PermissionName::UpdateRequests->value));
 
         $this->getJson("/api/v1/requests/{$uuid}")->assertJsonPath('data.abilities.update', true);
         $this->putJson("/api/v1/requests/{$uuid}", $this->payload(['title' => 'Edited by admin']))
@@ -286,7 +287,11 @@ class RequestApiTest extends TestCase
         $this->getJson('/api/v1/requests')->assertJsonPath('abilities.create', true);
         $this->getJson('/api/v1/request-types')->assertJsonPath('priorities', ['low', 'normal', 'high', 'urgent']);
 
+        // Without permissions a user can still list (their own, so none) but not create.
         Sanctum::actingAs(User::factory()->create());
-        $this->getJson('/api/v1/requests')->assertForbidden();
+        $this->getJson('/api/v1/requests')
+            ->assertOk()
+            ->assertJsonCount(0, 'data')
+            ->assertJsonPath('abilities.create', false);
     }
 }

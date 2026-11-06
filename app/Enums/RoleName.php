@@ -4,7 +4,6 @@ namespace App\Enums;
 
 enum RoleName: string
 {
-    case SuperAdmin = 'superadmin';
     case Admin = 'admin';
     case Requester = 'requester';
 
@@ -14,7 +13,7 @@ enum RoleName: string
     public function permissions(): array
     {
         return match ($this) {
-            self::SuperAdmin, self::Admin => PermissionName::cases(),
+            self::Admin => PermissionName::cases(),
             self::Requester => [PermissionName::CreateRequests],
         };
     }

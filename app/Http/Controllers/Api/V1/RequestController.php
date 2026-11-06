@@ -48,6 +48,17 @@ class RequestController extends Controller
         );
     }
 
+
+    public function show(ServiceRequest $serviceRequest): JsonResponse
+    {
+        Gate::authorize('view', $serviceRequest);
+
+        return Response::api(
+            new ServiceRequestDetailResource($serviceRequest->load(['type', 'requester'])),
+            __('Successful'),
+        );
+    }
+
     public function update(ServiceRequest $serviceRequest): JsonResponse
     {
         Gate::authorize('update', $serviceRequest);
@@ -72,13 +83,4 @@ class RequestController extends Controller
         return Response::success(__('Request deleted'));
     }
 
-    public function show(ServiceRequest $serviceRequest): JsonResponse
-    {
-        Gate::authorize('view', $serviceRequest);
-
-        return Response::api(
-            new ServiceRequestDetailResource($serviceRequest->load(['type', 'requester'])),
-            __('Successful'),
-        );
-    }
 }

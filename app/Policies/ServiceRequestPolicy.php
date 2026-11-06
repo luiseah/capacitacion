@@ -10,18 +10,26 @@ use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
+/**
+ * Owners can always see their own requests and edit or delete them while they
+ * are drafts. The permissions extend that to every request.
+ */
 class ServiceRequestPolicy
 {
-    public function viewAny(User $user): bool
+    /**
+     * Everyone can list; `ServiceRequestBuilder::visibleTo()` narrows the list
+     * to the user's own requests unless they have `requests.index`.
+     */
+    public function viewAny(User $user): Response|bool
     {
-        return $user->can(PermissionName::CreateRequests->value)
-            || $user->can(PermissionName::ViewAnyRequests->value);
+        return Response::allow();
     }
 
-    public function view(User $user, ServiceRequest $request): bool
+    public function view(User $user, ServiceRequest $request): Response|bool
     {
-        return $request->requester_id === $user->id
-            || $user->can(PermissionName::ViewAnyRequests->value);
+        return $this->isOwner($user, $request) || $user->can(PermissionName::ShowRequests->value)
+            ? Response::allow()
+            : Response::deny(__('You are not allowed to view this request.'));
     }
 
     /**
@@ -31,35 +39,45 @@ class ServiceRequestPolicy
     public function create(User $user, ?RequestTypeKey $type = null): Response|bool
     {
         if (! $user->can(PermissionName::CreateRequests->value)) {
-            return false;
+            return Response::deny(__('You are not allowed to create requests.'));
         }
 
         if ($type !== null && ! RequestType::query()->where('key', $type->value)->where('is_active', true)->exists()) {
             return Response::denyAsNotFound();
         }
 
-        return true;
+        return Response::allow();
     }
 
-    /**
-     * Requesters may edit their own requests while they are still drafts;
-     * users who can manage requests may edit them in any state.
-     */
-    public function update(User $user, ServiceRequest $request): bool
+    public function update(User $user, ServiceRequest $request): Response|bool
     {
-        if ($user->can(PermissionName::ManageRequests->value)) {
-            return true;
+        if ($user->can(PermissionName::UpdateRequests->value) || $this->isEditableDraftOf($user, $request)) {
+            return Response::allow();
         }
 
-        return $request->requester_id === $user->id
-            && $request->status === RequestStatus::Draft;
+        return Response::deny($this->isOwner($user, $request)
+            ? __('Only draft requests can be edited.')
+            : __('You are not allowed to edit this request.'));
     }
 
-    /**
-     * Same rule as editing: owners can delete their drafts, managers any request.
-     */
-    public function delete(User $user, ServiceRequest $request): bool
+    public function delete(User $user, ServiceRequest $request): Response|bool
     {
-        return $this->update($user, $request);
+        if ($user->can(PermissionName::DestroyRequests->value) || $this->isEditableDraftOf($user, $request)) {
+            return Response::allow();
+        }
+
+        return Response::deny($this->isOwner($user, $request)
+            ? __('Only draft requests can be deleted.')
+            : __('You are not allowed to delete this request.'));
+    }
+
+    private function isOwner(User $user, ServiceRequest $request): bool
+    {
+        return $request->requester_id === $user->id;
+    }
+
+    private function isEditableDraftOf(User $user, ServiceRequest $request): bool
+    {
+        return $this->isOwner($user, $request) && $request->status === RequestStatus::Draft;
     }
 }

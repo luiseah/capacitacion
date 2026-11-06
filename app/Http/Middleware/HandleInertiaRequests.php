@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\PermissionName;
+use App\Enums\RoleName;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -40,8 +42,39 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                'roles' => fn () => $this->roles($request),
+                'permissions' => fn () => $this->permissions($request),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function roles(Request $request): array
+    {
+        return $request->user()?->getRoleNames()->values()->all() ?? [];
+    }
+
+    /**
+     * The permissions the front end can check. Admins pass every Gate check
+     * (see AuthServiceProvider), so they receive every permission.
+     *
+     * @return array<int, string>
+     */
+    private function permissions(Request $request): array
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return [];
+        }
+
+        if ($user->hasRole(RoleName::Admin)) {
+            return array_column(PermissionName::cases(), 'value');
+        }
+
+        return $user->getAllPermissions()->pluck('name')->values()->all();
     }
 }

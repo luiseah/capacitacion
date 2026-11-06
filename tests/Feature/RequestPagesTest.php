@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PermissionName;
 use App\Enums\RoleName;
 use App\Models\PurchaseRequest;
 use App\Models\RequestType;
@@ -42,10 +43,9 @@ class RequestPagesTest extends TestCase
         $this->get(route('requests.index'))->assertRedirect(route('login'));
     }
 
-    public function test_users_without_permissions_are_forbidden(): void
+    public function test_users_without_the_create_permission_cannot_open_the_form(): void
     {
         $this->actingAs(User::factory()->create())->get(route('requests.create'))->assertForbidden();
-        $this->actingAs(User::factory()->create())->get(route('requests.index'))->assertForbidden();
     }
 
     public function test_index_page_receives_no_props(): void
@@ -113,8 +113,8 @@ class RequestPagesTest extends TestCase
         $this->actingAs($other)->get(route('requests.show', $request))->assertForbidden();
         $this->actingAs($other)->get(route('requests.edit', $request))->assertForbidden();
 
-        $admin = User::factory()->create()->assignRole(RoleName::Admin->value);
-        $this->actingAs($admin)->get(route('requests.edit', $request))->assertOk();
+        $manager = User::factory()->create()->givePermissionTo(PermissionName::ShowRequests->value, PermissionName::UpdateRequests->value);
+        $this->actingAs($manager)->get(route('requests.edit', $request))->assertOk();
     }
 
     public function test_deleted_requests_are_not_found(): void
@@ -124,5 +124,20 @@ class RequestPagesTest extends TestCase
         $request->delete();
 
         $this->actingAs($owner)->get(route('requests.show', $request->uuid))->assertNotFound();
+    }
+
+    public function test_roles_and_permissions_are_shared_with_the_front_end(): void
+    {
+        $this->actingAs($this->requester())->get(route('requests.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.roles', ['requester'])
+                ->where('auth.permissions', ['requests.create']));
+
+        $admin = User::factory()->create()->assignRole(RoleName::Admin->value);
+
+        $this->actingAs($admin)->get(route('requests.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.roles', ['admin'])
+                ->where('auth.permissions', array_column(PermissionName::cases(), 'value')));
     }
 }

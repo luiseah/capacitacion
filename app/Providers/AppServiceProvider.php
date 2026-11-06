@@ -2,14 +2,11 @@
 
 namespace App\Providers;
 
-use App\Enums\RoleName;
-use App\Models\User;
 use App\Support\ResponseAPIMixin;
 use Carbon\CarbonImmutable;
 use Illuminate\Routing\ResponseFactory;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -32,8 +29,6 @@ class AppServiceProvider extends ServiceProvider
 
         ResponseFactory::mixin(new ResponseAPIMixin);
 
-        // Superadmins bypass every gate and policy check.
-        Gate::before(fn (User $user) => $user->hasRole(RoleName::SuperAdmin->value) ? true : null);
     }
 
     /**
