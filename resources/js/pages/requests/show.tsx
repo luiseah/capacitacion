@@ -54,8 +54,8 @@ export default function RequestsShow({ requestUuid }: { requestUuid: string }) {
 
     const destroy = () =>
         deletion.mutate(request.uuid, {
-            onSuccess: () => {
-                toast.success('Request deleted.');
+            onSuccess: (response) => {
+                toast.success(response.message ?? 'Request deleted.');
                 router.visit(index());
             },
             onError: (failure) => toast.error(failure.message),

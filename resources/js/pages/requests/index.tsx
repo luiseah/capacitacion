@@ -3,10 +3,13 @@ import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { RequestStatusBadge } from '@/components/request-status-badge';
 import { Button } from '@/components/ui/button';
+import { Requests } from '@/generated/permissions';
 import { useRequests } from '@/hooks/requests/use-request-queries';
+import { usePermissions } from '@/hooks/use-permissions';
 import { create, index, show } from '@/routes/requests';
 
 export default function RequestsIndex() {
+    const { can } = usePermissions();
     const [page, setPage] = useState(1);
     const { data, isPending, isError, error, isPlaceholderData } = useRequests({ page });
 
@@ -21,7 +24,7 @@ export default function RequestsIndex() {
                     <h1 className="text-xl font-semibold tracking-tight">
                         Requests
                     </h1>
-                    {data?.abilities.create && (
+                    {can(Requests.create) && (
                         <Button asChild>
                             <Link href={create()}>
                                 <Plus /> New request

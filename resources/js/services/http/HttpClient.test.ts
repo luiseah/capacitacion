@@ -36,7 +36,7 @@ function clientWith(reply: Reply | Error, options: { getToken?: () => string | n
 }
 
 describe('HttpClient.buildUrl', () => {
-    const { client } = clientWith({});
+    const { client } = clientWith({ data: { status: 'success' } });
 
     it('replaces path parameters and encodes them', () => {
         expect(
@@ -62,16 +62,19 @@ describe('HttpClient.buildUrl', () => {
 
 describe('HttpClient.request', () => {
     it('returns the response body and sends JSON headers, query and body', async () => {
-        const { client, adapter } = clientWith({ data: { status: 'success' } });
+        const { client, adapter } = clientWith({
+            data: { status: 'success', message: 'Request created', data: { uuid: 'a' } },
+        });
 
-        const body = await client.request({
+        const response = await client.request<{ uuid: string }>({
             method: 'POST',
             url: '/api/v1/requests/purchase',
             params: { page: 1 },
             data: { title: 'Laptops' },
         });
 
-        expect(body).toEqual({ status: 'success' });
+        expect(response.data).toEqual({ uuid: 'a' });
+        expect(response.message).toBe('Request created');
 
         const config = adapter.mock.calls[0][0];
         expect(config.method).toBe('post');
@@ -82,7 +85,7 @@ describe('HttpClient.request', () => {
     });
 
     it('adds the bearer token when one is available', async () => {
-        const { client, adapter } = clientWith({}, { getToken: () => 'secret' });
+        const { client, adapter } = clientWith({ data: { status: 'success' } }, { getToken: () => 'secret' });
 
         await client.request({ url: '/api/v1/user' });
 
@@ -114,5 +117,30 @@ describe('HttpClient.request', () => {
         const canceled = new axios.CanceledError('canceled');
 
         await expect(clientWith(canceled).client.request({ url: '/x' })).rejects.toBe(canceled);
+    });
+
+    it('checks the endpoint extras declared in the config', async () => {
+        const { client } = clientWith({ data: { status: 'success', data: [] } });
+
+        await expect(
+            client.request<never[], { priorities: string[] }>({ url: '/x', extras: ['priorities'] }),
+        ).rejects.toThrow('The response is missing: priorities');
+    });
+
+    it('rejects a body that is not a success envelope', async () => {
+        await expect(clientWith({ data: 'oops' }).client.request({ url: '/x' })).rejects.toBeInstanceOf(ApiError);
+    });
+
+    it('paginated() guarantees the pagination fields', async () => {
+        const ok = clientWith({
+            data: { status: 'success', data: [{ id: 1 }], current_page: 1, last_page: 1, per_page: 15, total: 1 },
+        });
+
+        const response = await ok.client.paginated<{ id: number }>({ url: '/x' });
+        expect(response.toPage().items).toEqual([{ id: 1 }]);
+
+        await expect(
+            clientWith({ data: { status: 'success', data: [] } }).client.paginated({ url: '/x' }),
+        ).rejects.toThrow('The response is missing: current_page');
     });
 });

@@ -1,12 +1,13 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { requestKeys, requestTypeKeys } from '@/hooks/requests/query-keys';
 import services from '@/services';
-import type { RequestIndexParams } from '@/types';
+import type { RequestIndexParams, RequestTypeCatalog } from '@/types';
 
 export function useRequests(params: RequestIndexParams = {}) {
     return useQuery({
         queryKey: requestKeys.list(params),
-        queryFn: ({ signal }) => services.requests.all(params, { signal }),
+        queryFn: async ({ signal }) =>
+            (await services.requests.all(params, { signal })).toPage(),
         placeholderData: keepPreviousData,
     });
 }
@@ -14,7 +15,8 @@ export function useRequests(params: RequestIndexParams = {}) {
 export function useRequest(uuid: string | undefined) {
     return useQuery({
         queryKey: requestKeys.detail(uuid ?? ''),
-        queryFn: ({ signal }) => services.requests.show(uuid as string, { signal }),
+        queryFn: async ({ signal }) =>
+            (await services.requests.show(uuid as string, { signal })).data,
         enabled: Boolean(uuid),
     });
 }
@@ -22,7 +24,11 @@ export function useRequest(uuid: string | undefined) {
 export function useRequestTypes() {
     return useQuery({
         queryKey: requestTypeKeys.list(),
-        queryFn: ({ signal }) => services.requestTypes.all({ signal }),
+        queryFn: async ({ signal }): Promise<RequestTypeCatalog> => {
+            const response = await services.requestTypes.all({ signal });
+
+            return { types: response.data, priorities: response.extras.priorities };
+        },
         // Request types change rarely: keep them fresh for the whole session.
         staleTime: Infinity,
     });
@@ -31,8 +37,8 @@ export function useRequestTypes() {
 export function useRequestType(key: string | undefined) {
     return useQuery({
         queryKey: requestTypeKeys.detail(key ?? ''),
-        queryFn: ({ signal }) =>
-            services.requestTypes.show(key as string, { signal }),
+        queryFn: async ({ signal }) =>
+            (await services.requestTypes.show(key as string, { signal })).data,
         enabled: Boolean(key),
         staleTime: Infinity,
     });

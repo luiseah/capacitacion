@@ -1,12 +1,14 @@
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import ApiError from './ApiError';
+import ResponseService, { paginationKeys } from '../ResponseService';
+import type { NoExtras, PaginationMeta } from '@/types';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export type QueryParams = Record<string, unknown>;
 
-export type RequestConfig = {
+export type RequestConfig<E extends object = NoExtras> = {
     method?: HttpMethod;
     /** Path relative to the base URL, or an absolute URL (see `buildUrl`). */
     url: string;
@@ -17,6 +19,8 @@ export type RequestConfig = {
     headers?: Record<string, string>;
     /** Lets callers (e.g. TanStack Query) cancel the request. */
     signal?: AbortSignal;
+    /** Extra fields the endpoint must send besides the envelope (checked at runtime). */
+    extras?: readonly (keyof E & string)[];
 };
 
 export type HttpClientOptions = {
@@ -116,8 +120,15 @@ export default class HttpClient {
         return queryString ? `${path}?${queryString}` : path;
     }
 
-    async request<T = unknown>(config: RequestConfig): Promise<T> {
-        const response = await this.axios.request<T>({
+    /**
+     * Send a request and return the typed response envelope.
+     *
+     * `T` is the type of `data` and `E` the endpoint's extra fields.
+     */
+    async request<T = null, E extends object = NoExtras>(
+        config: RequestConfig<E>,
+    ): Promise<ResponseService<T, E>> {
+        const response = await this.axios.request({
             method: config.method ?? 'GET',
             url: config.url,
             params: config.params,
@@ -126,7 +137,14 @@ export default class HttpClient {
             signal: config.signal,
         });
 
-        return response.data;
+        return ResponseService.from<T, E>(response.data, { extras: config.extras });
+    }
+
+    /** Send a request to a paginated endpoint: `data` is a list plus the pagination fields. */
+    async paginated<Item>(
+        config: RequestConfig<PaginationMeta>,
+    ): Promise<ResponseService<Item[], PaginationMeta>> {
+        return this.request<Item[], PaginationMeta>({ ...config, extras: paginationKeys });
     }
 
     private normalizeError(error: unknown): unknown {

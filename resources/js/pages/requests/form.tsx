@@ -36,6 +36,7 @@ import type { RequestSample } from '@/lib/request-sample-data';
 import { cn } from '@/lib/utils';
 import { create, form, index, show } from '@/routes/requests';
 import { ApiError } from '@/services';
+import type ResponseService from '@/services/ResponseService';
 import type {
     ApiRequestDetail,
     ApiRequestTypeDefinition,
@@ -146,17 +147,9 @@ function RequestFormBody({
         setFormKey((key) => key + 1);
     };
 
-    const handleSuccess = (saved: ApiRequestDetail) => {
-        toast.success(
-            !editing
-                ? action === 'submit'
-                    ? 'Request submitted.'
-                    : 'Request saved as draft.'
-                : action === 'submit'
-                  ? 'Request submitted.'
-                  : 'Request updated.',
-        );
-        router.visit(show(saved.uuid));
+    const handleSuccess = (response: ResponseService<ApiRequestDetail>) => {
+        toast.success(response.message ?? 'Request saved.');
+        router.visit(show(response.data.uuid));
     };
 
     const handleError = (failure: Error) => {

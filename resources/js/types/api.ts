@@ -1,11 +1,19 @@
 import type { FieldType, RequestField, RequestStatus } from './requests';
 
-/** Envelope returned by the backend's `Response::api()` / `Response::success()`. */
-export type ApiResponse<T = unknown> = {
+/** No extra fields besides the envelope ones. */
+export type NoExtras = Record<never, never>;
+
+/**
+ * The single shape of every successful backend response (`Response::api()` /
+ * `Response::success()`): the envelope plus the endpoint's own typed extras.
+ *
+ * @example ApiResponse<ApiRequestTypeDefinition[], { priorities: string[] }>
+ */
+export type ApiResponse<T = null, E extends object = NoExtras> = {
     status: 'success';
     message?: string;
     data: T;
-};
+} & E;
 
 export type PaginationMeta = {
     current_page: number;
@@ -22,14 +30,15 @@ export type PaginationMeta = {
     links?: { url: string | null; label: string; active: boolean }[];
 };
 
-export type PaginatedApiResponse<T> = ApiResponse<T[]> &
-    PaginationMeta & { abilities: { create: boolean } };
+export type PaginatedApiResponse<T> = ApiResponse<T[], PaginationMeta>;
+
+/** Extra fields of the request types endpoint. */
+export type RequestTypesExtras = { priorities: string[] };
 
 /** A page of items as exposed by the services (envelope already unwrapped). */
 export type PageResult<T> = {
     items: T[];
     meta: PaginationMeta;
-    abilities: { create: boolean };
 };
 
 export type ApiRequestTypeDefinition = {

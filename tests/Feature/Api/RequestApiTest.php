@@ -280,18 +280,15 @@ class RequestApiTest extends TestCase
             ->assertJsonPath('data.status', 'submitted');
     }
 
-    public function test_list_and_types_expose_what_the_pages_need(): void
+    public function test_types_expose_the_priorities_and_the_list_is_open_to_everyone(): void
     {
         $this->requester();
 
-        $this->getJson('/api/v1/requests')->assertJsonPath('abilities.create', true);
         $this->getJson('/api/v1/request-types')->assertJsonPath('priorities', ['low', 'normal', 'high', 'urgent']);
 
         // Without permissions a user can still list (their own, so none) but not create.
         Sanctum::actingAs(User::factory()->create());
-        $this->getJson('/api/v1/requests')
-            ->assertOk()
-            ->assertJsonCount(0, 'data')
-            ->assertJsonPath('abilities.create', false);
+        $this->getJson('/api/v1/requests')->assertOk()->assertJsonCount(0, 'data');
+        $this->postJson('/api/v1/requests/purchase', $this->payload())->assertForbidden();
     }
 }

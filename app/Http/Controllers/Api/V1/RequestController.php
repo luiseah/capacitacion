@@ -27,9 +27,7 @@ class RequestController extends Controller
             ->paginate(15)
             ->through(fn (ServiceRequest $r) => (new ServiceRequestResource($r))->resolve());
 
-        return Response::api($requests, __('Successful'), [
-            'abilities' => ['create' => $user->can('create', ServiceRequest::class)],
-        ]);
+        return Response::api($requests, __('Successful'));
     }
 
     public function store(RequestTypeKey $type): JsonResponse

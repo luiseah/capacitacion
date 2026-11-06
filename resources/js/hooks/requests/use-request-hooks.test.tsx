@@ -15,6 +15,7 @@ import {
     useRequests,
 } from '@/hooks/requests/use-request-queries';
 import services from '@/services';
+import ResponseService from '@/services/ResponseService';
 
 vi.mock('@/services', () => ({
     default: {
@@ -35,6 +36,9 @@ const requestTypeService = services.requestTypes;
 
 const payload = { title: 'Laptops', priority: 'normal', metadata: {} };
 const detail = { uuid: 'abc', title: 'Laptops' };
+
+const wrap = (data: unknown, message = 'Successful', extras: object = {}) =>
+    ResponseService.from({ status: 'success', message, data, ...extras }) as never;
 
 let queryClient: QueryClient;
 
@@ -59,7 +63,12 @@ describe('query keys', () => {
 
 describe('queries', () => {
     it('useRequests loads a page through the service', async () => {
-        vi.mocked(requestService.all).mockResolvedValue({ items: [detail], meta: {} } as never);
+        vi.mocked(requestService.all).mockResolvedValue(
+            ResponseService.from(
+                { status: 'success', data: [detail], current_page: 1, last_page: 1, per_page: 15, total: 1 },
+                { extras: ['current_page'] },
+            ) as never,
+        );
 
         const { result } = renderHook(() => useRequests({ page: 2 }), { wrapper });
 
@@ -69,7 +78,7 @@ describe('queries', () => {
     });
 
     it('useRequest is disabled without a uuid and loads with one', async () => {
-        vi.mocked(requestService.show).mockResolvedValue(detail as never);
+        vi.mocked(requestService.show).mockResolvedValue(wrap(detail));
 
         const disabled = renderHook(() => useRequest(undefined), { wrapper });
         expect(disabled.result.current.fetchStatus).toBe('idle');
@@ -80,13 +89,13 @@ describe('queries', () => {
     });
 
     it('useRequestTypes and useRequestType load request types', async () => {
-        vi.mocked(requestTypeService.all).mockResolvedValue({ types: [{ key: 'purchase' }], priorities: ['low'] } as never);
-        vi.mocked(requestTypeService.show).mockResolvedValue({ key: 'purchase' } as never);
+        vi.mocked(requestTypeService.all).mockResolvedValue(wrap([{ key: 'purchase' }], 'Successful', { priorities: ['low'] }));
+        vi.mocked(requestTypeService.show).mockResolvedValue(wrap({ key: 'purchase' }));
 
         const list = renderHook(() => useRequestTypes(), { wrapper });
         const one = renderHook(() => useRequestType('purchase'), { wrapper });
 
-        await waitFor(() => expect(list.result.current.data?.types).toEqual([{ key: 'purchase' }]));
+        await waitFor(() => expect(list.result.current.data).toEqual({ types: [{ key: 'purchase' }], priorities: ['low'] }));
         await waitFor(() => expect(one.result.current.data).toEqual({ key: 'purchase' }));
     });
 
@@ -102,7 +111,7 @@ describe('queries', () => {
 
 describe('mutations', () => {
     it('useCreateRequest caches the detail and invalidates the lists', async () => {
-        vi.mocked(requestService.create).mockResolvedValue(detail as never);
+        vi.mocked(requestService.create).mockResolvedValue(wrap(detail, 'Request created'));
         const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
         const { result } = renderHook(() => useCreateRequest(), { wrapper });
@@ -114,7 +123,7 @@ describe('mutations', () => {
     });
 
     it('useUpdateRequest refreshes the cached detail and the lists', async () => {
-        vi.mocked(requestService.update).mockResolvedValue({ ...detail, title: 'Updated' } as never);
+        vi.mocked(requestService.update).mockResolvedValue(wrap({ ...detail, title: 'Updated' }, 'Request updated'));
         const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
         const { result } = renderHook(() => useUpdateRequest(), { wrapper });
@@ -125,12 +134,15 @@ describe('mutations', () => {
     });
 
     it('useDeleteRequest drops the cached detail and invalidates the lists', async () => {
-        vi.mocked(requestService.destroy).mockResolvedValue(undefined);
+        vi.mocked(requestService.destroy).mockResolvedValue(wrap(undefined, 'Request deleted'));
         queryClient.setQueryData(requestKeys.detail('abc'), detail);
         const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
         const { result } = renderHook(() => useDeleteRequest(), { wrapper });
-        await act(() => result.current.mutateAsync('abc'));
+        const response = await act(() => result.current.mutateAsync('abc'));
+
+        // The mutation resolves with the response, so the UI can show the server message.
+        expect(response.message).toBe('Request deleted');
 
         expect(queryClient.getQueryData(requestKeys.detail('abc'))).toBeUndefined();
         expect(invalidate).toHaveBeenCalledWith({ queryKey: requestKeys.lists() });

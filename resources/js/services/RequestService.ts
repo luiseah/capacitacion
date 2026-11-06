@@ -1,10 +1,9 @@
 import AbstractService from './AbstractService';
+import type ResponseService from './ResponseService';
 import type {
     ApiRequestDetail,
     ApiRequestSummary,
-    ApiResponse,
-    PageResult,
-    PaginatedApiResponse,
+    PaginationMeta,
     RequestIndexParams,
     RequestPayload,
 } from '@/types';
@@ -18,25 +17,13 @@ export default class RequestService extends AbstractService {
     public async all(
         params: RequestIndexParams = {},
         options: ReadOptions = {},
-    ): Promise<PageResult<ApiRequestSummary>> {
-        const response = await this.client.request<
-            PaginatedApiResponse<ApiRequestSummary>
-        >({
+    ): Promise<ResponseService<ApiRequestSummary[], PaginationMeta>> {
+        return this.client.paginated<ApiRequestSummary>({
             method: 'GET',
             url: '/api/v1/requests',
             params,
             signal: options.signal,
         });
-
-        const {
-            data,
-            abilities,
-            status: _status,
-            message: _message,
-            ...meta
-        } = response;
-
-        return { items: data, meta, abilities };
     }
 
     /**
@@ -45,17 +32,13 @@ export default class RequestService extends AbstractService {
     public async show(
         uuid: string,
         options: ReadOptions = {},
-    ): Promise<ApiRequestDetail> {
+    ): Promise<ResponseService<ApiRequestDetail>> {
         const url = this.client.buildUrl({
             url: '/api/v1/requests/:uuid',
             params: { uuid },
         });
 
-        const response = await this.client.request<
-            ApiResponse<ApiRequestDetail>
-        >({ method: 'GET', url, signal: options.signal });
-
-        return response.data;
+        return this.client.request({ method: 'GET', url, signal: options.signal });
     }
 
     /**
@@ -64,17 +47,13 @@ export default class RequestService extends AbstractService {
     public async create(
         type: string,
         payload: RequestPayload,
-    ): Promise<ApiRequestDetail> {
+    ): Promise<ResponseService<ApiRequestDetail>> {
         const url = this.client.buildUrl({
             url: '/api/v1/requests/:type',
             params: { type },
         });
 
-        const response = await this.client.request<
-            ApiResponse<ApiRequestDetail>
-        >({ method: 'POST', url, data: payload });
-
-        return response.data;
+        return this.client.request({ method: 'POST', url, data: payload });
     }
 
     /**
@@ -83,28 +62,24 @@ export default class RequestService extends AbstractService {
     public async update(
         uuid: string,
         payload: RequestPayload,
-    ): Promise<ApiRequestDetail> {
+    ): Promise<ResponseService<ApiRequestDetail>> {
         const url = this.client.buildUrl({
             url: '/api/v1/requests/:uuid',
             params: { uuid },
         });
 
-        const response = await this.client.request<
-            ApiResponse<ApiRequestDetail>
-        >({ method: 'PUT', url, data: payload });
-
-        return response.data;
+        return this.client.request({ method: 'PUT', url, data: payload });
     }
 
     /**
      * Delete a request
      */
-    public async destroy(uuid: string): Promise<void> {
+    public async destroy(uuid: string): Promise<ResponseService> {
         const url = this.client.buildUrl({
             url: '/api/v1/requests/:uuid',
             params: { uuid },
         });
 
-        await this.client.request({ method: 'DELETE', url });
+        return this.client.request({ method: 'DELETE', url });
     }
 }

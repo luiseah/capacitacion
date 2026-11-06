@@ -9,8 +9,8 @@ export function useCreateRequest() {
     return useMutation({
         mutationFn: ({ type, payload }: { type: string; payload: RequestPayload }) =>
             services.requests.create(type, payload),
-        onSuccess: (request) => {
-            queryClient.setQueryData(requestKeys.detail(request.uuid), request);
+        onSuccess: (response) => {
+            queryClient.setQueryData(requestKeys.detail(response.data.uuid), response.data);
 
             return queryClient.invalidateQueries({ queryKey: requestKeys.lists() });
         },
@@ -23,8 +23,8 @@ export function useUpdateRequest() {
     return useMutation({
         mutationFn: ({ uuid, payload }: { uuid: string; payload: RequestPayload }) =>
             services.requests.update(uuid, payload),
-        onSuccess: (request) => {
-            queryClient.setQueryData(requestKeys.detail(request.uuid), request);
+        onSuccess: (response) => {
+            queryClient.setQueryData(requestKeys.detail(response.data.uuid), response.data);
 
             return queryClient.invalidateQueries({ queryKey: requestKeys.lists() });
         },
