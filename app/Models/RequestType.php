@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\RequestTypeKey;
+use Database\Factories\RequestTypeFactory;
+use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
+#[UseFactory(RequestTypeFactory::class)]
 class RequestType extends Model implements AuditableContract
 {
     use Auditable, HasFactory, SoftDeletes;

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\RequestStatus;
 use App\Enums\RequestTypeKey;
 use App\Http\Requests\Requests\ServiceRequestFormRequest;
+use App\Models\Builders\ServiceRequestBuilder;
 use App\Models\BookReservationRequest;
 use App\Models\GradeChangeRequest;
 use App\Models\PurchaseRequest;
@@ -109,5 +110,40 @@ class RequestStrategyTest extends TestCase
                 );
             }
         }
+    }
+
+    public function test_custom_builder_constraints_filter_by_type_and_visibility(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+
+        PurchaseRequest::create(['requester_id' => $owner->id, 'title' => 'Mine', 'metadata' => []]);
+        WorkPermitRequest::create(['requester_id' => $other->id, 'title' => 'Theirs', 'metadata' => []]);
+
+        $this->assertInstanceOf(ServiceRequestBuilder::class, ServiceRequest::query());
+        $this->assertInstanceOf(ServiceRequestBuilder::class, PurchaseRequest::query());
+
+        $this->assertSame(['Mine'], ServiceRequest::query()->visibleTo($owner)->pluck('title')->all());
+        $this->assertSame(['Theirs'], ServiceRequest::query()->ofType(RequestTypeKey::WorkPermit)->pluck('title')->all());
+        $this->assertTrue(ServiceRequest::query()->withListRelations()->first()->relationLoaded('type'));
+    }
+
+    public function test_factories_build_requests_and_concrete_models_keep_their_scope_and_type_stamp(): void
+    {
+        $user = User::factory()->create();
+
+        $request = ServiceRequest::factory()->ofType(RequestTypeKey::Purchase)->forRequester($user)->submitted()->create();
+        $inactive = RequestType::factory()->ofKey(RequestTypeKey::Purchase)->inactive()->make();
+
+        $this->assertSame(RequestStatus::Submitted, $request->status);
+        $this->assertFalse($inactive->is_active);
+
+        // Creating stamps the type and the scope limits each concrete model.
+        $permit = WorkPermitRequest::create(['requester_id' => $user->id, 'title' => 'Day off', 'metadata' => []]);
+
+        $this->assertSame(RequestTypeKey::WorkPermit, $permit->type->key);
+        $this->assertSame(1, WorkPermitRequest::count());
+        $this->assertSame(1, PurchaseRequest::count()); // the one built by the factory
+        $this->assertSame(2, ServiceRequest::count());
     }
 }

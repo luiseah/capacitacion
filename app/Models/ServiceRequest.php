@@ -5,9 +5,15 @@ namespace App\Models;
 use App\Enums\RequestPriority;
 use App\Enums\RequestStatus;
 use App\Enums\RequestTypeKey;
+use App\Models\Builders\ServiceRequestBuilder;
+use App\Models\Scopes\RequestTypeScope;
+use Database\Factories\ServiceRequestFactory;
 use App\Requests\Field;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Attributes\ScopedBy;
+use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
+use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,9 +27,12 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  *
  * Not named `Request` to avoid clashing with Illuminate\Http\Request.
  */
+#[ScopedBy([RequestTypeScope::class])]
+#[UseFactory(ServiceRequestFactory::class)]
+#[UseEloquentBuilder(ServiceRequestBuilder::class)]
 class ServiceRequest extends Model implements AuditableContract
 {
-    use Auditable, HasUuids, SoftDeletes;
+    use Auditable, HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'requests';
 
@@ -63,20 +72,13 @@ class ServiceRequest extends Model implements AuditableContract
 
     protected static function booted(): void
     {
-        // Only concrete types are scoped to their own rows and stamped on create.
-        if (static::class === self::class) {
-            return;
-        }
-
-        static::addGlobalScope('request_type', function (Builder $query) {
-            $query->whereIn(
-                'request_type_id',
-                RequestType::query()->select('id')->where('key', static::typeKey()->value),
-            );
-        });
-
+        // Concrete request models stamp their own type on creation.
         static::creating(function (self $request) {
-            $request->request_type_id ??= RequestType::where('key', static::typeKey()->value)->value('id');
+            if ($request::class !== self::class) {
+                $request->request_type_id ??= RequestType::query()
+                    ->where('key', $request::typeKey()->value)
+                    ->value('id');
+            }
         });
     }
 
