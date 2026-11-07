@@ -88,3 +88,35 @@ export type RequestPayload = {
 export type RequestIndexParams = {
     page?: number;
 };
+
+export type ApiUser = {
+    id: number;
+    name: string;
+    lastname: string;
+    full_name: string;
+    email: string;
+    phone: string | null;
+    roles: string[];
+    email_verified: boolean;
+    abilities: { update: boolean; delete: boolean };
+    created_at: string;
+};
+
+export type SortDirection = 'asc' | 'desc';
+
+export type UserSortColumn = 'name' | 'lastname' | 'email' | 'phone' | 'verified' | 'created_at';
+
+export type UserIndexParams = {
+    page?: number;
+    search?: string;
+    role?: string;
+    sort?: Partial<Record<UserSortColumn, SortDirection>>;
+};
+
+export type UserPayload = {
+    name: string;
+    lastname: string;
+    email: string;
+    phone: string | null;
+    roles: string[];
+};

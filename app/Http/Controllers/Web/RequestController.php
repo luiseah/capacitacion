@@ -32,9 +32,10 @@ class RequestController extends Controller
     {
         Gate::authorize('create', ServiceRequest::class);
 
-        $first = RequestType::query()->where('is_active', true)->orderBy('id')->first();
-
-        abort_if($first === null, 404);
+        $first = RequestType::query()
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->firstOrFail();
 
         return to_route('requests.form', $first->key->value);
     }

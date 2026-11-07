@@ -1,6 +1,7 @@
 import { createTypedFactoryProxy } from '@/lib/utils';
 import RequestService from './RequestService';
 import RequestTypeService from './RequestTypeService';
+import UserService from './UserService';
 
 export { default as ApiError } from './http/ApiError';
 export { default as HttpClient, httpClient } from './http/HttpClient';
@@ -14,6 +15,7 @@ export { default as AbstractService } from './AbstractService';
 const registry = {
     requests: RequestService,
     requestTypes: RequestTypeService,
+    users: UserService,
 } as const;
 
 /**

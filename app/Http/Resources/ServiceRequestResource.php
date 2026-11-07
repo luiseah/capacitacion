@@ -21,7 +21,7 @@ class ServiceRequestResource extends JsonResource
             'title' => $this->title,
             'type' => $this->type->key->label(),
             'type_key' => $this->type->key->value,
-            'requester' => $this->requester->name,
+            'requester' => $this->requester->full_name,
             'status' => $this->status->value,
             'priority' => $this->priority->value,
             'created_at' => $this->created_at->toIso8601String(),

@@ -36,7 +36,7 @@ export default function Profile(
                 <Heading
                     variant="small"
                     title="Profile"
-                    description="Update your name and email address"
+                    description="Update your name, email address and phone"
                 />
 
                 <Form
@@ -57,13 +57,32 @@ export default function Profile(
                                     defaultValue={auth.user.name}
                                     name="name"
                                     required
-                                    autoComplete="name"
-                                    placeholder="Full name"
+                                    autoComplete="given-name"
+                                    placeholder="Name"
                                 />
 
                                 <InputError
                                     className="mt-2"
                                     message={errors.name}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="lastname">Last name</Label>
+
+                                <Input
+                                    id="lastname"
+                                    className="mt-1 block w-full"
+                                    defaultValue={auth.user.lastname}
+                                    name="lastname"
+                                    required
+                                    autoComplete="family-name"
+                                    placeholder="Last name"
+                                />
+
+                                <InputError
+                                    className="mt-2"
+                                    message={errors.lastname}
                                 />
                             </div>
 
@@ -84,6 +103,25 @@ export default function Profile(
                                 <InputError
                                     className="mt-2"
                                     message={errors.email}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="phone">Phone</Label>
+
+                                <Input
+                                    id="phone"
+                                    type="tel"
+                                    className="mt-1 block w-full"
+                                    defaultValue={auth.user.phone ?? ''}
+                                    name="phone"
+                                    autoComplete="tel"
+                                    placeholder="+34 600 000 000"
+                                />
+
+                                <InputError
+                                    className="mt-2"
+                                    message={errors.phone}
                                 />
                             </div>
 
