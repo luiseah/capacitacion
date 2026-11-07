@@ -1,0 +1,43 @@
+{
+    "name": "module/api-response",
+    "description": "Shared JSON envelope for Laravel APIs: `{ status, message, data, ...pagination }`, as a class and as Response::api()/success()/error() macros.",
+    "keywords": ["laravel", "api", "response", "envelope"],
+    "license": "MIT",
+    "type": "library",
+    "require": {
+        "php": "^8.3",
+        "illuminate/http": "^12.0|^13.0",
+        "illuminate/pagination": "^12.0|^13.0",
+        "illuminate/routing": "^12.0|^13.0",
+        "illuminate/support": "^12.0|^13.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0|^11.0",
+        "phpunit/phpunit": "^11.5|^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Module\\ApiResponse\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Module\\ApiResponse\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Module\\ApiResponse\\ApiResponseServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
