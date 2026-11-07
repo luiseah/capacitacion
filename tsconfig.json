@@ -14,12 +14,15 @@
         "resolveJsonModule": true,
         "types": ["vite/client"],
         "paths": {
-            "@/*": ["./resources/js/*"]
+            "@/*": ["./resources/js/*"],
+            "@academic/*": ["./packages/academic-mobility/resources/js/*"]
         }
     },
     "include": [
         "resources/js/**/*.ts",
         "resources/js/**/*.tsx",
-        "resources/js/**/*.d.ts"
+        "resources/js/**/*.d.ts",
+        "packages/academic-mobility/resources/js/**/*.ts",
+        "packages/academic-mobility/resources/js/**/*.tsx"
     ]
 }

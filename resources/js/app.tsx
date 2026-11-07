@@ -8,10 +8,34 @@ import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { createQueryClient } from '@/lib/query-client';
 
+// Pages of the academic-mobility package (dev mode: read from packages/ through the
+// `@academic` alias). Inertia names `academic-mobility/<path>` map to `pages/<path>`.
+const PACKAGE_PAGE_PREFIX = 'academic-mobility/';
+const hostPages = import.meta.glob('./pages/**/*.tsx');
+const packagePages = import.meta.glob(
+    '../../packages/academic-mobility/resources/js/pages/**/*.tsx',
+);
+
 const queryClient = createQueryClient();
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 void createInertiaApp({
+    resolve: async (name) => {
+        const isPackage = name.startsWith(PACKAGE_PAGE_PREFIX);
+        const importer = isPackage
+            ? packagePages[
+                  `../../packages/academic-mobility/resources/js/pages/${name.slice(PACKAGE_PAGE_PREFIX.length)}.tsx`
+              ]
+            : hostPages[`./pages/${name}.tsx`];
+
+        if (!importer) {
+            throw new Error(`Page not found: ${name}`);
+        }
+
+        const module = (await importer()) as { default: never };
+
+        return module.default;
+    },
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {

@@ -1,0 +1,59 @@
+{
+    "name": "module/academic-mobility",
+    "description": "Reusable academic mobility management for Laravel: extensible rules, strategies, documents and workflow, decoupled from the host application's models.",
+    "keywords": ["laravel", "academic", "mobility", "package"],
+    "license": "MIT",
+    "type": "library",
+    "require": {
+        "php": "^8.3",
+        "illuminate/contracts": "^12.0|^13.0",
+        "illuminate/database": "^12.0|^13.0",
+        "illuminate/http": "^12.0|^13.0",
+        "illuminate/routing": "^12.0|^13.0",
+        "illuminate/support": "^12.0|^13.0",
+        "module/api-response": "@dev"
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../api-response",
+            "options": {"symlink": true}
+        }
+    ],
+    "suggest": {
+        "inertiajs/inertia-laravel": "Required for the Inertia page of the mobilities list (routes.web).",
+        "spatie/laravel-permission": "Any Gate-compatible ACL works; Spatie permissions named like the MobilityAbility values do out of the box."
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0|^11.0",
+        "phpunit/phpunit": "^11.5|^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Module\\AcademicMobility\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Module\\AcademicMobility\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Module\\AcademicMobility\\AcademicMobilityServiceProvider"
+            ],
+            "aliases": {
+                "AcademicMobility": "Module\\AcademicMobility\\Facades\\AcademicMobility"
+            }
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

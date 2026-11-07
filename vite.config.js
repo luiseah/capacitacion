@@ -4,7 +4,14 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
+
+// Dev mode for the academic-mobility package: its React sources are read straight
+// from the symlinked package folder, so edits show up through HMR without publishing.
+const academicMobility = fileURLToPath(
+    new URL('./packages/academic-mobility/resources/js', import.meta.url),
+);
 
 export default defineConfig({
     plugins: [
@@ -24,6 +31,9 @@ export default defineConfig({
             formVariants: true,
         }),
     ],
+    resolve: {
+        alias: { '@academic': academicMobility },
+    },
     server: {
         host: '0.0.0.0',
         origin: 'http://localhost:5173',

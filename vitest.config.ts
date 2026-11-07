@@ -5,7 +5,12 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
     plugins: [react()],
     resolve: {
-        alias: { '@': fileURLToPath(new URL('./resources/js', import.meta.url)) },
+        alias: {
+            '@': fileURLToPath(new URL('./resources/js', import.meta.url)),
+            '@academic': fileURLToPath(
+                new URL('./packages/academic-mobility/resources/js', import.meta.url),
+            ),
+        },
     },
     test: {
         environment: 'jsdom',
