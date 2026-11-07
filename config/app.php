@@ -80,6 +80,18 @@ return [
 
     'locale' => env('APP_LOCALE', 'en'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Supported Locales
+    |--------------------------------------------------------------------------
+    |
+    | The languages the interface can be switched to (see SetLocale). Each one
+    | needs its `lang/{locale}.json` (and, for validation messages, `lang/{locale}/`).
+    |
+    */
+
+    'supported_locales' => ['en', 'es'],
+
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),

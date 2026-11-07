@@ -1,3 +1,4 @@
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -177,6 +178,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                     </div>
 
                     <div className="ml-auto flex items-center space-x-2">
+                        <LanguageSwitcher />
                         <div className="relative flex items-center space-x-1">
                             <Button
                                 variant="ghost"
@@ -219,10 +221,10 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                     <Avatar className="size-8 overflow-hidden rounded-full">
                                         <AvatarImage
                                             src={auth.user?.avatar}
-                                            alt={auth.user?.name}
+                                            alt={auth.user?.full_name}
                                         />
                                         <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
-                                            {getInitials(auth.user?.name ?? '')}
+                                            {getInitials(auth.user?.full_name ?? '')}
                                         </AvatarFallback>
                                     </Avatar>
                                 </Button>
