@@ -76,7 +76,7 @@ services:
       profiles:
         - local
       environment:
-        POSTGRES_DB: postgresql
+        POSTGRES_DB: app
         POSTGRES_USER: user_db
         POSTGRES_PASSWORD: secret
       volumes:

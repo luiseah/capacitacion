@@ -25,6 +25,8 @@ Aplicación Laravel 13 + Inertia/React con un módulo de **movilidad académica*
 
 ## Instalación desde cero
 
+> **Atajo:** `./setup.sh` hace todos los pasos de esta sección (entorno, imagen, servicios, dependencias, clave, migraciones, seeders y rutas tipadas) y se puede repetir sin riesgo. Opciones: `--fresh` (vacía la base y vuelve a sembrar), `--tests`, `--no-build`, `--no-seed` y `--yes`; `./setup.sh --help` las lista. Abajo está el detalle paso a paso.
+
 ### 1. Clonar y preparar el entorno
 
 ```bash
@@ -33,37 +35,7 @@ cd capacitacion
 cp .env.example .env
 ```
 
-Abre `.env` y deja estos valores (el `.env.example` viene pensado para SQLite, aquí se usa PostgreSQL y Redis de Docker):
-
-```dotenv
-APP_URL=http://localhost
-COMPOSE_PROJECT_NAME=capa
-
-# PostgreSQL (servicio `db`)
-DB_CONNECTION=pgsql
-DB_HOST=db
-DB_PORT=5432
-DB_DATABASE=postgresql
-DB_USERNAME=user_db
-DB_PASSWORD=secret
-
-# Redis (servicio `cache`): el host es el nombre del servicio, no 127.0.0.1
-REDIS_CLIENT=phpredis
-REDIS_HOST=cache
-REDIS_PORT=6379
-REDIS_PASSWORD=secret
-
-# Correo: Mailpit (servicio `smtpServer`)
-MAIL_MAILER=smtp
-MAIL_HOST=smtpServer
-MAIL_PORT=1025
-
-SESSION_DRIVER=database
-QUEUE_CONNECTION=database
-CACHE_STORE=database
-```
-
-`REDIS_PASSWORD` también la usa `docker-compose.yml` para levantar Redis, así que debe estar definida.
+El `.env.example` ya viene configurado para los servicios de Docker, no necesitas editar nada: PostgreSQL (`DB_HOST=db`, base `app`), Redis (`REDIS_HOST=cache`; el host es el nombre del servicio, no `127.0.0.1`) y Mailpit (`MAIL_HOST=smtpServer`). `REDIS_PASSWORD` también la usa `docker-compose.yml` para levantar Redis, así que debe estar definida.
 
 ### 2. Construir la imagen
 
@@ -209,8 +181,9 @@ Las pruebas corren en PostgreSQL, en el esquema `testing` (no tocan las tablas d
 ```bash
 cp .env.testing.example .env.testing
 
-# una sola vez: crea el esquema de pruebas
-docker compose exec db psql -U user_db -d postgresql -c "CREATE SCHEMA IF NOT EXISTS testing"
+# el esquema `testing` lo crea el script de arranque de la base de datos al crear el volumen
+# (.docker/db/pgsql/docker-entrypoint-initdb.d/schema.sql); si tu volumen es anterior:
+docker compose exec db psql -U user_db -d app -f /docker-entrypoint-initdb.d/schema.sql
 
 docker compose exec backend php artisan test
 
@@ -311,7 +284,7 @@ El módulo de movilidad tiene su propio README en [`packages/academic-mobility/R
 
 - **`Connection refused` con Redis o Horizon se reinicia:** `REDIS_HOST` debe ser `cache`, no `127.0.0.1`, y `REDIS_PASSWORD` debe estar en `.env`.
 - **No hay base de datos:** levantaste sin `--profile local`. Usa `docker compose --profile local up -d`.
-- **La base `postgresql` no existe o está vacía tras recrear el volumen:** `docker compose --profile local down -v` y vuelve a levantar; Postgres crea la base en el primer arranque.
+- **La base `app` no existe o está vacía tras recrear el volumen:** `docker compose --profile local down -v` y vuelve a levantar; Postgres crea la base en el primer arranque.
 - **Error de permisos en `storage/` o `bootstrap/cache`:** `docker compose exec backend chmod -R ug+rwX storage bootstrap/cache`.
 - **El navegador responde 409 al navegar (Inertia):** quedó una carpeta `public/build/` de una compilación anterior y choca con Vite en desarrollo. Bórrala: `rm -rf public/build`. Solo la necesitas si compilas con `pnpm build`.
 - **Cambios en `.env` o config sin efecto:** `docker compose exec backend php artisan config:clear`.
