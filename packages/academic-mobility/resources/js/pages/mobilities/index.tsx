@@ -28,6 +28,7 @@ export default function MobilitiesIndex() {
         participant_type: participantType || undefined,
         direction: direction || undefined,
         scope: scope || undefined,
+        with: ['originInstitution', 'destinationInstitution'],
         sort: { [sort.column]: sort.direction },
     });
 

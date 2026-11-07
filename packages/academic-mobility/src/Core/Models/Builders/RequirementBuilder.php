@@ -8,13 +8,14 @@ use Module\AcademicMobility\Core\Enums\MobilityDirection;
 use Module\AcademicMobility\Core\Enums\MobilityScope;
 use Module\AcademicMobility\Core\Enums\ParticipantKind;
 use Module\AcademicMobility\Core\Models\Requirement;
+use Module\Pagination\PaginatedBuilder;
 
 /**
  * Query builder of {@see Requirement}: named, reusable constraints.
  *
- * @extends Builder<Requirement>
+ * @extends PaginatedBuilder<Requirement>
  */
-class RequirementBuilder extends Builder
+class RequirementBuilder extends PaginatedBuilder
 {
     /**
      * Apply the list filters present in the request: `search` (name), `direction`, `scope`,
@@ -42,14 +43,22 @@ class RequirementBuilder extends Builder
             $this->where('is_active', $request->boolean('active'));
         }
 
-        return $this;
+        return $this->sort($request);
+    }
+
+    protected function sortable(): array
+    {
+        return ['name' => 'name', 'position' => 'position', 'created_at' => 'created_at'];
+    }
+
+    protected function defaultOrder(): void
+    {
+        $this->orderBy('position')->orderBy('name');
     }
 
     public function bySearch(?string $text): static
     {
-        foreach (preg_split('/\s+/u', trim((string) $text), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $token) {
-            $this->whereRaw("lower(name) like ? escape '\\'", ['%'.addcslashes(mb_strtolower($token), '%_\\').'%']);
-        }
+        $this->whereSearch(['name'], $text);
 
         return $this;
     }

@@ -4,8 +4,8 @@ namespace Module\AcademicMobility\Core\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Query\Builder;
 use Module\AcademicMobility\Core\Models\Builders\InstitutionBuilder;
 
 /**
@@ -14,7 +14,7 @@ use Module\AcademicMobility\Core\Models\Builders\InstitutionBuilder;
  *
  * @property string $id
  * @property string $name
- * @property string $country  ISO 3166-1 alpha-2, upper case
+ * @property string $country ISO 3166-1 alpha-2, upper case
  * @property bool $is_local
  *
  * @method static InstitutionBuilder query()
@@ -51,24 +51,6 @@ class Institution extends Model
     /**
      * Make this the local institution, demoting the previous one.
      */
-    /**
-     * The agreements of this institution with the local one: as many as it needs.
-     *
-     * @return HasMany<Agreement, $this>
-     */
-    public function agreements(): HasMany
-    {
-        return $this->hasMany(config('academic-mobility.models.agreement', Agreement::class))->latestFirst();
-    }
-
-    /**
-     * Whether the institution takes part in any agreement: as the main one or in a multilateral one.
-     */
-    public function hasAgreements(): bool
-    {
-        return config('academic-mobility.models.agreement', Agreement::class)::query()->forInstitution($this->getKey())->exists();
-    }
-
     public function makeLocal(): static
     {
         $this->getConnection()->transaction(function () {
@@ -86,7 +68,7 @@ class Institution extends Model
     }
 
     /**
-     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  Builder  $query
      */
     public function newEloquentBuilder($query): InstitutionBuilder
     {

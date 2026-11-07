@@ -8,9 +8,9 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Validation\ValidationException;
-use Module\AcademicMobility\Contracts\DirectionalStrategy;
 use Module\AcademicMobility\Contracts\CreatableParticipantResolver;
 use Module\AcademicMobility\Contracts\DetailedParticipant;
+use Module\AcademicMobility\Contracts\DirectionalStrategy;
 use Module\AcademicMobility\Contracts\Participant;
 use Module\AcademicMobility\Contracts\SampleParticipantResolver;
 use Module\AcademicMobility\Contracts\SearchableParticipantResolver;
@@ -18,29 +18,27 @@ use Module\AcademicMobility\Core\DTOs\CreateMobilityData;
 use Module\AcademicMobility\Core\Enums\MobilityDirection;
 use Module\AcademicMobility\Core\Enums\MobilityScope;
 use Module\AcademicMobility\Core\Enums\ParticipantKind;
-use Module\AcademicMobility\Core\Models\Mobility;
 use Module\AcademicMobility\Core\Exceptions\AgreementNotApplicable;
 use Module\AcademicMobility\Core\Exceptions\InstitutionNotFound;
 use Module\AcademicMobility\Core\Exceptions\InvalidRoute;
 use Module\AcademicMobility\Core\Exceptions\MobilityNotEligible;
 use Module\AcademicMobility\Core\Exceptions\ParticipantNotFound;
 use Module\AcademicMobility\Core\Exceptions\UnknownExtension;
+use Module\AcademicMobility\Core\Models\Mobility;
 use Module\AcademicMobility\Core\ValueObjects\ParticipantReference;
 use Module\AcademicMobility\Facades\AcademicMobility;
+use Module\AcademicMobility\Http\Requests\IndexMobilitiesRequest;
 use Module\AcademicMobility\Http\Requests\PreviewRequirementsRequest;
 use Module\AcademicMobility\Http\Requests\SampleParticipantRequest;
-use Module\AcademicMobility\Http\Requests\SearchAgreementsRequest;
 use Module\AcademicMobility\Http\Requests\SearchInstitutionsRequest;
 use Module\AcademicMobility\Http\Requests\SearchParticipantsRequest;
 use Module\AcademicMobility\Http\Requests\StoreMobilityRequest;
 use Module\AcademicMobility\Http\Requests\StoreParticipantRequest;
-use Module\AcademicMobility\Http\Resources\AgreementResource;
 use Module\AcademicMobility\Http\Resources\InstitutionResource;
+use Module\AcademicMobility\Http\Resources\MobilityResource;
 use Module\AcademicMobility\Http\Resources\RequirementResource;
 use Module\AcademicMobility\Rules\RuleResult;
 use Module\AcademicMobility\Support\ExtensionKind;
-use Module\AcademicMobility\Http\Requests\IndexMobilitiesRequest;
-use Module\AcademicMobility\Http\Resources\MobilityResource;
 
 class MobilityController extends Controller
 {
@@ -49,11 +47,8 @@ class MobilityController extends Controller
         $model = config('academic-mobility.models.mobility');
 
         $mobilities = $model::query()
-            ->withListRelations()
             ->applyFilters($request)
-            ->sort($request)
-            ->paginate((int) config('academic-mobility.per_page', 15))
-            ->withQueryString()
+            ->paginated((int) config('academic-mobility.per_page', 15))
             ->through(fn ($mobility) => (new MobilityResource($mobility))->resolve($request));
 
         return Response::api($mobilities, __('Successful'));
@@ -92,21 +87,6 @@ class MobilityController extends Controller
     }
 
     /**
-     * The agreements of an institution with the local one, to show when it is chosen in the creation form:
-     * all of them (the latest first), so it is clear which are in force.
-     */
-    public function agreements(SearchAgreementsRequest $request): JsonResponse
-    {
-        $agreements = config('academic-mobility.models.agreement')::query()
-            ->with(['framework', 'institution', 'institutions'])
-            ->forInstitution($request->string('institution_id')->toString())
-            ->latestFirst()
-            ->get();
-
-        return Response::api(AgreementResource::collection($agreements)->resolve($request));
-    }
-
-    /**
      * What a mobility with this direction, scope and participant kind has to bring (the creation form's preview).
      */
     public function requirementsPreview(PreviewRequirementsRequest $request): JsonResponse
@@ -130,20 +110,15 @@ class MobilityController extends Controller
     {
         Gate::authorize('view', $mobility);
 
-        $mobility->load(['originInstitution', 'destinationInstitution', 'requirements', 'agreement']);
+        $mobility->load(['originInstitution', 'destinationInstitution', 'requirements']);
 
         $participant = $mobility->direction === null
             ? null
             : $this->describe(AcademicMobility::participantResolver($mobility->direction, $mobility->participant_type)->resolve($mobility->participant_id));
 
-        // The agreements with the institution on the other side: the one the participant comes from or goes to.
-        $partner = $mobility->direction === MobilityDirection::Incoming ? $mobility->origin_institution_id : $mobility->destination_institution_id;
-        $agreements = $partner === null ? collect() : config('academic-mobility.models.agreement')::query()->with(['framework', 'institution', 'institutions'])->forInstitution($partner)->latestFirst()->get();
-
         return Response::api([
             ...(new MobilityResource($mobility))->resolve($request),
             'participant' => $participant,
-            'agreements' => AgreementResource::collection($agreements)->resolve($request),
         ]);
     }
 
@@ -242,7 +217,7 @@ class MobilityController extends Controller
             ]);
         }
 
-        return Response::api((new MobilityResource($mobility->load(['originInstitution', 'destinationInstitution', 'requirements', 'agreement'])))->resolve($request), __('Mobility created'), status: 201);
+        return Response::api((new MobilityResource($mobility->load(['originInstitution', 'destinationInstitution', 'requirements'])))->resolve($request), __('Mobility created'), status: 201);
     }
 
     /**

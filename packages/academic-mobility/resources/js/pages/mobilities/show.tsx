@@ -3,8 +3,8 @@ import { ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/use-translation';
-import { AgreementList } from '@academic/components/agreement-list';
 import { RequirementList } from '@academic/components/requirement-list';
+import { MobilitySlot } from '@academic/extensions';
 import { useMobility } from '@academic/hooks/use-mobilities';
 import { PARTICIPANT_LABELS, enumLabel } from '@academic/types';
 
@@ -25,6 +25,7 @@ export default function MobilitiesShow({ mobilityId }: { mobilityId: string }) {
     const requirements = mobility.requirements ?? [];
     // The institution on the other side: where the participant comes from or goes to.
     const partner = mobility.direction === 'incoming' ? mobility.origin : mobility.destination;
+    const partnerId = partner?.id ?? null;
     const pending = requirements.filter((requirement) => requirement.is_mandatory && !requirement.fulfilled).length;
 
     return (
@@ -66,10 +67,7 @@ export default function MobilitiesShow({ mobilityId }: { mobilityId: string }) {
                             <dd className="text-sm font-medium">{detail.value}</dd>
                         </div>
                     ))}
-                    <div>
-                        <dt className="text-sm text-muted-foreground">{t('Agreement')}</dt>
-                        <dd className="text-sm font-medium">{mobility.agreement?.name ?? t('None')}</dd>
-                    </div>
+                    <MobilitySlot name="show.summary" mobility={mobility} partnerId={partnerId} />
                     <div>
                         <dt className="text-sm text-muted-foreground">{t('Strategy')}</dt>
                         <dd className="text-sm font-medium">{mobility.strategy}</dd>
@@ -82,16 +80,7 @@ export default function MobilitiesShow({ mobilityId }: { mobilityId: string }) {
                     </div>
                 </dl>
 
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-                        {t('Agreements with :name', { name: partner?.name ?? '—' })}
-                    </h2>
-                    <AgreementList
-                        agreements={mobility.agreements}
-                        empty={t('This institution has no agreements with the local one.')}
-                        highlightId={mobility.agreement_id}
-                    />
-                </section>
+                <MobilitySlot name="show.section" mobility={mobility} partner={partner} partnerId={partnerId} />
 
                 <section className="space-y-3">
                     <div className="flex items-baseline justify-between gap-2">

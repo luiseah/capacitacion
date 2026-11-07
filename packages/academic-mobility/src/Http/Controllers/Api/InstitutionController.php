@@ -22,9 +22,7 @@ class InstitutionController extends Controller
 
         $institutions = $model::query()
             ->applyFilters($request)
-            ->localFirst()
-            ->paginate((int) config('academic-mobility.per_page', 15))
-            ->withQueryString()
+            ->paginated((int) config('academic-mobility.per_page', 15))
             ->through(fn ($institution) => (new InstitutionResource($institution))->resolve($request));
 
         return Response::api($institutions, __('Successful'));
@@ -72,10 +70,6 @@ class InstitutionController extends Controller
 
         if ($inUse) {
             return Response::error(__('This institution has mobilities and cannot be deleted.'), 409);
-        }
-
-        if ($institution->hasAgreements()) {
-            return Response::error(__('This institution has agreements and cannot be deleted.'), 409);
         }
 
         if ($reason = AcademicMobility::institutionDeletionBlockedBy($institution)) {

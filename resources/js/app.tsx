@@ -7,6 +7,8 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { createQueryClient } from '@/lib/query-client';
+// Plugs the agreements into the mobility pages.
+import '@agreements/register';
 
 // Pages of the academic-mobility package (dev mode: read from packages/ through the
 // `@academic` alias). Inertia names `academic-mobility/<path>` map to `pages/<path>`.
@@ -16,17 +18,24 @@ const packagePages = import.meta.glob(
     '../../packages/academic-mobility/resources/js/pages/**/*.tsx',
 );
 
+// Pages of the agreements package: Inertia names `agreements/<page>` live in its `pages/agreements/`.
+const AGREEMENTS_PAGE_PREFIX = 'agreements/';
+const agreementPages = import.meta.glob(
+    '../../packages/agreements/resources/js/pages/**/*.tsx',
+);
+
 const queryClient = createQueryClient();
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 void createInertiaApp({
     resolve: async (name) => {
-        const isPackage = name.startsWith(PACKAGE_PAGE_PREFIX);
-        const importer = isPackage
+        const importer = name.startsWith(PACKAGE_PAGE_PREFIX)
             ? packagePages[
                   `../../packages/academic-mobility/resources/js/pages/${name.slice(PACKAGE_PAGE_PREFIX.length)}.tsx`
               ]
-            : hostPages[`./pages/${name}.tsx`];
+            : name.startsWith(AGREEMENTS_PAGE_PREFIX)
+              ? agreementPages[`../../packages/agreements/resources/js/pages/${name}.tsx`]
+              : hostPages[`./pages/${name}.tsx`];
 
         if (!importer) {
             throw new Error(`Page not found: ${name}`);

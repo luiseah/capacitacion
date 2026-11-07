@@ -3,7 +3,6 @@
 namespace App\Participants;
 
 use App\Models\ExternalParticipant;
-use App\Support\SearchInput;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Module\AcademicMobility\Contracts\Participant;
@@ -12,6 +11,7 @@ use Module\AcademicMobility\Contracts\SearchableParticipantResolver;
 use Module\AcademicMobility\Core\Enums\ParticipantKind;
 use Module\AcademicMobility\Core\Models\Institution;
 use Module\AcademicMobility\Infrastructure\Resolvers\EloquentParticipantResolver;
+use Module\Pagination\Search\SearchInput;
 
 /**
  * Where the participants of an incoming mobility come from: the visitors of other institutions

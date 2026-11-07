@@ -59,7 +59,7 @@ const institutionsNavItem: NavItem = {
 
 const agreementsNavItem: NavItem = {
     title: 'Agreements',
-    href: '/academic-mobility/agreements',
+    href: '/agreements',
     icon: FileSignature,
 };
 

@@ -11,7 +11,7 @@ import { create, index, show } from '@/routes/requests';
 export default function RequestsIndex() {
     const { can } = usePermissions();
     const [page, setPage] = useState(1);
-    const { data, isPending, isError, error, isPlaceholderData } = useRequests({ page });
+    const { data, isPending, isError, error, isPlaceholderData } = useRequests({ page, with: ['type', 'requester'] });
 
     const meta = data?.meta;
 

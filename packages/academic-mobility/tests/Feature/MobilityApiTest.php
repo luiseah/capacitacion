@@ -4,10 +4,12 @@ namespace Module\AcademicMobility\Tests\Feature;
 
 use Illuminate\Support\Facades\Gate;
 use Module\AcademicMobility\Authorization\MobilityAbility;
-use Module\AcademicMobility\Core\Enums\MobilityStatus;
-use Module\AcademicMobility\Core\Models\Mobility;
+use Module\AcademicMobility\Contracts\AgreementValidator;
 use Module\AcademicMobility\Core\Enums\MobilityDirection;
+use Module\AcademicMobility\Core\Enums\MobilityStatus;
+use Module\AcademicMobility\Core\Exceptions\AgreementNotApplicable;
 use Module\AcademicMobility\Core\Models\Institution;
+use Module\AcademicMobility\Core\Models\Mobility;
 use Module\AcademicMobility\Core\ValueObjects\ParticipantReference;
 use Module\AcademicMobility\Facades\AcademicMobility;
 use Module\AcademicMobility\Tests\Support\AbroadCondition;
@@ -153,6 +155,28 @@ class MobilityApiTest extends TestCase
         $this->actingAs($this->userWith(MobilityAbility::ViewAny))
             ->postJson(self::URL, $this->payload())
             ->assertForbidden();
+    }
+
+    public function test_an_agreement_is_refused_without_who_validates_it_or_when_the_validator_refuses_it(): void
+    {
+        $this->registerStudents();
+        $user = $this->userWith(MobilityAbility::Create);
+
+        // Nobody manages agreements: a mobility cannot be made under one.
+        $this->actingAs($user)->postJson(self::URL, $this->payload(['agreement_id' => '01HZZZZZZZZZZZZZZZZZZZZZZZ']))
+            ->assertUnprocessable()->assertJsonValidationErrors('agreement_id');
+
+        $this->app->bind(AgreementValidator::class, fn () => new class implements AgreementValidator
+        {
+            public function validate(string $agreementId, Institution $partner): void
+            {
+                throw AgreementNotApplicable::notInForce();
+            }
+        });
+
+        $this->actingAs($user)->postJson(self::URL, $this->payload(['agreement_id' => '01HZZZZZZZZZZZZZZZZZZZZZZZ']))
+            ->assertUnprocessable()->assertJsonPath('errors.agreement_id.0', 'The agreement is not in force: only agreements in force can be used.');
+        $this->assertDatabaseCount('academic_mobilities', 0);
     }
 
     public function test_creates_a_draft_mobility(): void

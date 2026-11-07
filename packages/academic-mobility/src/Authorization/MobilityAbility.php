@@ -37,13 +37,4 @@ enum MobilityAbility: string
     case UpdateRequirements = 'requirements.update';
 
     case DeleteRequirements = 'requirements.destroy';
-
-    /** See the agreements (convenios) of the institutions. */
-    case ViewAnyAgreements = 'agreements.index';
-
-    case CreateAgreements = 'agreements.create';
-
-    case UpdateAgreements = 'agreements.update';
-
-    case DeleteAgreements = 'agreements.destroy';
 }

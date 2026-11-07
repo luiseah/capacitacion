@@ -1,6 +1,5 @@
 <?php
 
-use Module\AcademicMobility\Core\Models\Agreement;
 use Module\AcademicMobility\Core\Models\Institution;
 use Module\AcademicMobility\Core\Models\Mobility;
 use Module\AcademicMobility\Core\Models\Requirement;
@@ -25,7 +24,6 @@ return [
         'mobility' => Mobility::class,
         'institution' => Institution::class,
         'requirement' => Requirement::class,
-        'agreement' => Agreement::class,
     ],
 
     /*
@@ -46,17 +44,6 @@ return [
     ],
 
     'per_page' => 15,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Documents
-    |--------------------------------------------------------------------------
-    | Disk where the signed documents of the agreements are kept (null = the
-    | application's default disk). They are served through the API, never publicly.
-    */
-    'documents' => [
-        'disk' => env('ACADEMIC_MOBILITY_DOCUMENTS_DISK'),
-    ],
 
     /*
     |--------------------------------------------------------------------------

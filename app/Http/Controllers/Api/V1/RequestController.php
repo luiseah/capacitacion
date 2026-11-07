@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\RequestTypeKey;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Requests\ServiceRequestIndexRequest;
 use App\Http\Resources\ServiceRequestDetailResource;
 use App\Http\Resources\ServiceRequestResource;
 use App\Models\ServiceRequest;
@@ -14,17 +15,12 @@ use Illuminate\Support\Facades\Response;
 
 class RequestController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(ServiceRequestIndexRequest $request): JsonResponse
     {
-        Gate::authorize('viewAny', ServiceRequest::class);
-
-        $user = $request->user();
-
         $requests = ServiceRequest::query()
-            ->withListRelations()
-            ->visibleTo($user)
-            ->newest()
-            ->paginate(15)
+            ->visibleTo($request->user())
+            ->applyFilters($request)
+            ->paginated(15)
             ->through(fn (ServiceRequest $r) => (new ServiceRequestResource($r))->resolve());
 
         return Response::api($requests, __('Successful'));
@@ -45,7 +41,6 @@ class RequestController extends Controller
             status: 201,
         );
     }
-
 
     public function show(ServiceRequest $serviceRequest): JsonResponse
     {
@@ -80,5 +75,4 @@ class RequestController extends Controller
 
         return Response::success(__('Request deleted'));
     }
-
 }

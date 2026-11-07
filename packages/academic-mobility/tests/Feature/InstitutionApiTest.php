@@ -2,8 +2,10 @@
 
 namespace Module\AcademicMobility\Tests\Feature;
 
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Gate;
 use Module\AcademicMobility\Authorization\MobilityAbility;
+use Module\AcademicMobility\Core\Enums\MobilityScope;
 use Module\AcademicMobility\Core\Enums\MobilityStatus;
 use Module\AcademicMobility\Core\Models\Institution;
 use Module\AcademicMobility\Core\Models\Mobility;
@@ -57,6 +59,10 @@ class InstitutionApiTest extends TestCase
             ->assertJsonPath('data.0.is_local', true);
 
         $this->getJson(self::URL.'?search=sorb')->assertJsonPath('total', 1)->assertJsonPath('data.0.country', 'FR');
+        // Accents and case do not matter.
+        $this->getJson(self::URL.'?search=SORBONNE')->assertJsonPath('total', 1);
+        Institution::create(['name' => 'Universidad Católica', 'country' => 'ES']);
+        $this->getJson(self::URL.'?search=catolica')->assertJsonPath('total', 1);
     }
 
     public function test_creates_an_institution_and_upper_cases_the_country(): void
@@ -102,7 +108,7 @@ class InstitutionApiTest extends TestCase
 
     public function test_the_database_allows_a_single_local_institution(): void
     {
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
         Institution::create(['name' => 'Second local', 'country' => 'ES', 'is_local' => true]);
     }
@@ -149,19 +155,19 @@ class InstitutionApiTest extends TestCase
         $this->assertSame(['Universidad Local', 'Universidad de Barcelona'], $names('search=universidad'));
 
         $builder = Institution::query();
-        $this->assertSame(['Sorbonne'], $builder->byScope(\Module\AcademicMobility\Core\Enums\MobilityScope::International)->pluck('name')->all());
+        $this->assertSame(['Sorbonne'], $builder->byScope(MobilityScope::International)->pluck('name')->all());
         $this->assertSame(['Sorbonne', 'Universidad de Barcelona'], Institution::query()->partners()->localFirst()->pluck('name')->all());
     }
 
-    public function test_an_institution_with_agreements_cannot_be_deleted(): void
+    public function test_an_institution_a_guard_opposes_to_cannot_be_deleted(): void
     {
         $this->actingWith(MobilityAbility::DeleteInstitutions);
 
-        \Module\AcademicMobility\Core\Models\Agreement::create([
-            'institution_id' => $this->national->id, 'name' => 'Framework', 'starts_on' => '2026-01-01', 'activities' => ['research'],
-        ]);
+        AcademicMobility::preventInstitutionDeletionUsing(
+            fn (Institution $institution) => $institution->is($this->national) ? 'Kept by a guard.' : null,
+        );
 
-        $this->deleteJson(self::URL.'/'.$this->national->id)->assertStatus(409)->assertJsonPath('message', 'This institution has agreements and cannot be deleted.');
+        $this->deleteJson(self::URL.'/'.$this->national->id)->assertStatus(409)->assertJsonPath('message', 'Kept by a guard.');
         $this->assertNotSoftDeleted($this->national);
         $this->deleteJson(self::URL.'/'.$this->foreign->id)->assertOk();
     }

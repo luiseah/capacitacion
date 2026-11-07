@@ -21,9 +21,7 @@ class RequirementController extends Controller
     {
         $requirements = config('academic-mobility.models.requirement')::query()
             ->applyFilters($request)
-            ->ordered()
-            ->paginate((int) config('academic-mobility.per_page', 15))
-            ->withQueryString()
+            ->paginated((int) config('academic-mobility.per_page', 15))
             ->through(fn ($requirement) => (new RequirementResource($requirement))->resolve($request));
 
         return Response::api($requirements, __('Successful'));

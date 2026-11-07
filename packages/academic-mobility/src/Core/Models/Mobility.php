@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Module\AcademicMobility\Core\Models\Builders\MobilityBuilder;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Query\Builder;
 use Module\AcademicMobility\Core\Enums\MobilityDirection;
 use Module\AcademicMobility\Core\Enums\MobilityScope;
 use Module\AcademicMobility\Core\Enums\MobilityStatus;
+use Module\AcademicMobility\Core\Models\Builders\MobilityBuilder;
 use Module\AcademicMobility\Core\ValueObjects\ParticipantReference;
 
 /**
@@ -23,7 +24,7 @@ use Module\AcademicMobility\Core\ValueObjects\ParticipantReference;
  * @property MobilityScope|null $scope
  * @property string|null $origin_institution_id
  * @property string|null $destination_institution_id
- * @property string|null $agreement_id
+ * @property string|null $agreement_id Only there when the `module/agreements` package (or the host) adds the column.
  * @property array<string, mixed>|null $metadata
  *
  * @method static MobilityBuilder query()
@@ -38,7 +39,7 @@ class Mobility extends Model
     ];
 
     /**
-     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  Builder  $query
      */
     public function newEloquentBuilder($query): MobilityBuilder
     {
@@ -68,16 +69,6 @@ class Mobility extends Model
     public function participant(): ParticipantReference
     {
         return new ParticipantReference($this->participant_type, $this->participant_id);
-    }
-
-    /**
-     * The agreement the mobility is made under, if one was chosen.
-     *
-     * @return BelongsTo<Agreement, $this>
-     */
-    public function agreement(): BelongsTo
-    {
-        return $this->belongsTo(config('academic-mobility.models.agreement', Agreement::class), 'agreement_id');
     }
 
     /** @return BelongsTo<Institution, $this> */

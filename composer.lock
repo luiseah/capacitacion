@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2e03a792191b4b0904b83a496670f664",
+    "content-hash": "4c699530e748ba26b909fca3caa7da3d",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -2667,7 +2667,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/academic-mobility",
-                "reference": "e20e5b4802be91d975ebafb0e32bcf4a8394d429"
+                "reference": "c8e09bdd366668069b599113f45daa0893e865a3"
             },
             "require": {
                 "illuminate/contracts": "^12.0|^13.0",
@@ -2676,6 +2676,7 @@
                 "illuminate/routing": "^12.0|^13.0",
                 "illuminate/support": "^12.0|^13.0",
                 "module/api-response": "@dev",
+                "module/pagination": "@dev",
                 "php": "^8.3"
             },
             "require-dev": {
@@ -2720,6 +2721,71 @@
                 "academic",
                 "laravel",
                 "mobility",
+                "package"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "module/agreements",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/agreements",
+                "reference": "9345cb705a341d5d91fb13000badf7ad7b6eb70a"
+            },
+            "require": {
+                "illuminate/contracts": "^12.0|^13.0",
+                "illuminate/database": "^12.0|^13.0",
+                "illuminate/http": "^12.0|^13.0",
+                "illuminate/routing": "^12.0|^13.0",
+                "illuminate/support": "^12.0|^13.0",
+                "module/academic-mobility": "@dev",
+                "module/api-response": "@dev",
+                "module/pagination": "@dev",
+                "php": "^8.3"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.0|^11.0",
+                "phpunit/phpunit": "^11.5|^12.0"
+            },
+            "suggest": {
+                "inertiajs/inertia-laravel": "Required for the pages of the agreements (routes.web).",
+                "spatie/laravel-permission": "Any Gate-compatible ACL works; Spatie permissions named like the AgreementAbility values do out of the box."
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Module\\Agreements\\AgreementsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Module\\Agreements\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Module\\Agreements\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/phpunit"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Agreements (convenios) between institutions for Laravel: types, parties, status, validity, signed document and activities. Plugs into module/academic-mobility.",
+            "keywords": [
+                "agreements",
+                "convenios",
+                "laravel",
                 "package"
             ],
             "transport-options": {
@@ -2778,6 +2844,55 @@
                 "envelope",
                 "laravel",
                 "response"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "module/pagination",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/pagination",
+                "reference": "dc6f0d7d36362a83573271890271c66f2b49cb26"
+            },
+            "require": {
+                "illuminate/database": "^12.0|^13.0",
+                "illuminate/http": "^12.0|^13.0",
+                "illuminate/support": "^12.0|^13.0",
+                "php": "^8.3"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.0|^11.0",
+                "phpunit/phpunit": "^11.5|^12.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Module\\Pagination\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Module\\Pagination\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/phpunit"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Base Eloquent builder with request-driven pagination (`per_page`, `page`) for Laravel.",
+            "keywords": [
+                "builder",
+                "eloquent",
+                "laravel",
+                "pagination"
             ],
             "transport-options": {
                 "symlink": true,
@@ -11072,7 +11187,9 @@
     "minimum-stability": "stable",
     "stability-flags": {
         "module/academic-mobility": 20,
-        "module/api-response": 20
+        "module/agreements": 20,
+        "module/api-response": 20,
+        "module/pagination": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

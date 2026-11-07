@@ -2,39 +2,25 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\RoleName;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Users\UserDestroyRequest;
+use App\Http\Requests\Users\UserIndexRequest;
 use App\Http\Requests\Users\UserUpdateRequest;
 use App\Http\Resources\UserResource;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Response;
-use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(UserIndexRequest $request): JsonResponse
     {
-        Gate::authorize('viewAny', User::class);
-
-        $request->validate([
-            'search' => ['nullable', 'string', 'max:100'],
-            'role' => ['nullable', Rule::enum(RoleName::class)],
-            'sort' => ['nullable', 'array'],
-            'sort.*' => ['in:asc,desc'],
-        ]);
-
         $users = User::query()
-            ->withListRelations()
             ->applyFilters($request)
-            ->sort($request)
-            ->paginate(15)
-            ->withQueryString()
+            ->paginated(15)
             ->through(fn (User $user) => (new UserResource($user))->resolve());
 
         return Response::api($users, __('Successful'));

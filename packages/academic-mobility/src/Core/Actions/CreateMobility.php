@@ -3,11 +3,12 @@
 namespace Module\AcademicMobility\Core\Actions;
 
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Facades\DB;
 use Module\AcademicMobility\Contracts\AffiliatedParticipant;
+use Module\AcademicMobility\Contracts\AgreementValidator;
 use Module\AcademicMobility\Contracts\DirectionalStrategy;
 use Module\AcademicMobility\Contracts\MobilityStrategy;
 use Module\AcademicMobility\Core\DTOs\CreateMobilityData;
-use Illuminate\Support\Facades\DB;
 use Module\AcademicMobility\Core\Enums\MobilityDirection;
 use Module\AcademicMobility\Core\Enums\MobilityStatus;
 use Module\AcademicMobility\Core\Enums\ParticipantKind;
@@ -17,10 +18,8 @@ use Module\AcademicMobility\Core\Exceptions\InstitutionNotFound;
 use Module\AcademicMobility\Core\Exceptions\InvalidRoute;
 use Module\AcademicMobility\Core\Exceptions\MobilityNotEligible;
 use Module\AcademicMobility\Core\Exceptions\ParticipantNotFound;
-use Module\AcademicMobility\Core\Models\Agreement;
 use Module\AcademicMobility\Core\Models\Mobility;
 use Module\AcademicMobility\Core\Models\Requirement;
-use Module\AcademicMobility\Core\Persistence\MobilityRepository;
 use Module\AcademicMobility\Core\Support\RouteResolver;
 use Module\AcademicMobility\Core\ValueObjects\MobilityRoute;
 use Module\AcademicMobility\Rules\RuleContext;
@@ -38,8 +37,8 @@ class CreateMobility
         private readonly ExtensionRegistry $extensions,
         private readonly RuleEngine $rules,
         private readonly RouteResolver $routes,
-        private readonly MobilityRepository $repository,
         private readonly Dispatcher $events,
+        private readonly ?AgreementValidator $agreements = null,
     ) {}
 
     /**
@@ -67,7 +66,9 @@ class CreateMobility
             throw InvalidRoute::participantFromAnotherInstitution();
         }
 
-        $agreement = $data->agreementId === null ? null : $this->agreement($data->agreementId, $route);
+        if ($data->agreementId !== null) {
+            $this->checkAgreement($data->agreementId, $route);
+        }
 
         $failures = $this->rules->failures($strategy->rules(), new RuleContext($participant, $data->metadata, $route));
 
@@ -75,18 +76,19 @@ class CreateMobility
             throw new MobilityNotEligible($failures);
         }
 
-        $mobility = DB::connection(config('academic-mobility.connection'))->transaction(function () use ($data, $alias, $route, $agreement) {
-            $mobility = $this->repository->create([
-            'participant_type' => $data->participant->type,
-            'participant_id' => $data->participant->id,
-            'strategy' => $alias,
-            'direction' => $route->direction,
-            'scope' => $route->scope,
-            'origin_institution_id' => $route->origin->getKey(),
-            'destination_institution_id' => $route->destination->getKey(),
-            'agreement_id' => $agreement?->getKey(),
-            'status' => MobilityStatus::Draft,
-            'metadata' => $data->metadata,
+        $mobility = DB::connection(config('academic-mobility.connection'))->transaction(function () use ($data, $alias, $route) {
+            $mobility = config('academic-mobility.models.mobility', Mobility::class)::query()->create([
+                'participant_type' => $data->participant->type,
+                'participant_id' => $data->participant->id,
+                'strategy' => $alias,
+                'direction' => $route->direction,
+                'scope' => $route->scope,
+                'origin_institution_id' => $route->origin->getKey(),
+                'destination_institution_id' => $route->destination->getKey(),
+                'status' => MobilityStatus::Draft,
+                'metadata' => $data->metadata,
+                // The column belongs to the agreements package: only touched when an agreement was chosen.
+                ...($data->agreementId === null ? [] : ['agreement_id' => $data->agreementId]),
             ]);
 
             $this->snapshotRequirements($mobility);
@@ -100,23 +102,20 @@ class CreateMobility
     }
 
     /**
-     * The agreement the mobility is made under: one in force that binds the institution on the other side
-     * (its own agreements, or a multilateral one it takes part in).
+     * The agreement the mobility is made under has to bind the institution on the other side and be in force:
+     * whoever manages the agreements decides (see {@see AgreementValidator}).
      *
      * @throws AgreementNotApplicable
      */
-    private function agreement(string $id, MobilityRoute $route): Agreement
+    private function checkAgreement(string $id, MobilityRoute $route): void
     {
         $partner = $route->direction === MobilityDirection::Incoming ? $route->origin : $route->destination;
-        $model = config('academic-mobility.models.agreement', Agreement::class);
 
-        $agreement = $model::query()->find($id) ?? throw AgreementNotApplicable::notFound();
-
-        if (! $model::query()->whereKey($id)->forInstitution($partner->getKey())->exists()) {
-            throw AgreementNotApplicable::notOfTheInstitution();
+        if (! $this->agreements instanceof AgreementValidator) {
+            throw AgreementNotApplicable::notFound();
         }
 
-        return $agreement->isInForce() ? $agreement : throw AgreementNotApplicable::notInForce();
+        $this->agreements->validate($id, $partner);
     }
 
     /**

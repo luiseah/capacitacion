@@ -44,7 +44,7 @@ class UserApiTest extends TestCase
         $this->admin();
         User::factory()->create(['name' => 'Ana', 'lastname' => 'Torres', 'phone' => '+34 612 345 678'])->assignRole(RoleName::Requester->value);
 
-        $this->getJson('/api/v1/users')
+        $this->getJson('/api/v1/users?with[]=roles')
             ->assertOk()
             ->assertJsonPath('data.0.name', 'Ana')
             ->assertJsonPath('data.0.lastname', 'Torres')
@@ -54,6 +54,16 @@ class UserApiTest extends TestCase
             ->assertJsonPath('data.1.name', 'Boss')
             ->assertJsonMissingPath('data.0.password')
             ->assertJsonPath('total', 2);
+    }
+
+    public function test_the_relations_to_include_are_validated_against_the_enum(): void
+    {
+        $this->admin();
+
+        $this->getJson('/api/v1/users?with[]=roles')->assertOk();
+        $this->getJson('/api/v1/users?with[]=password')->assertUnprocessable()->assertJsonValidationErrors('with.0');
+        $this->getJson('/api/v1/users?with[]=roles&with[]=roles')->assertUnprocessable()->assertJsonValidationErrors('with.0');
+        $this->getJson('/api/v1/users?with=roles')->assertUnprocessable()->assertJsonValidationErrors('with');
     }
 
     public function test_filters_by_search_and_role(): void

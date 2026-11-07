@@ -8,14 +8,10 @@ use App\Models\Professor;
 use App\Models\Student;
 use App\Models\User;
 use App\Participants\VisitorParticipants;
-use App\Support\SearchFunction;
-use App\Support\SearchInput;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Module\AcademicMobility\Core\Enums\MobilityDirection;
@@ -24,6 +20,7 @@ use Module\AcademicMobility\Core\Models\Institution;
 use Module\AcademicMobility\Core\ValueObjects\ParticipantReference;
 use Module\AcademicMobility\Facades\AcademicMobility;
 use Module\AcademicMobility\Infrastructure\Resolvers\EloquentParticipantResolver;
+use Module\Pagination\Search\SearchInput;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -41,9 +38,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
-
-        // SQLite has no `search()`: give it the PHP twin of the PostgreSQL function.
-        Event::listen(ConnectionEstablished::class, fn (ConnectionEstablished $event) => SearchFunction::register($event->connection));
 
         $this->registerParticipants();
     }

@@ -13,6 +13,10 @@ const academicMobility = fileURLToPath(
     new URL('./packages/academic-mobility/resources/js', import.meta.url),
 );
 
+const agreements = fileURLToPath(
+    new URL('./packages/agreements/resources/js', import.meta.url),
+);
+
 export default defineConfig({
     plugins: [
         laravel({
@@ -32,7 +36,7 @@ export default defineConfig({
         }),
     ],
     resolve: {
-        alias: { '@academic': academicMobility },
+        alias: { '@academic': academicMobility, '@agreements': agreements },
     },
     server: {
         host: '0.0.0.0',

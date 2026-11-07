@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\RoleName;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Database\Seeders\UserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
@@ -129,9 +130,24 @@ class UserBuilderTest extends TestCase
         $this->assertSame(['Abe', 'bruno', 'Cara'], $names(['sort' => ['name' => 'sideways']]));
     }
 
+    public function test_apply_filters_loads_only_the_allowed_relations_the_request_asks_for_and_sorts(): void
+    {
+        User::factory()->create(['name' => 'Zoe']);
+        User::factory()->create(['name' => 'Abe']);
+
+        $users = fn (array $query) => User::query()->applyFilters(Request::create('/', 'GET', $query))->get();
+
+        $this->assertFalse($users([])->first()->relationLoaded('roles'));
+        $this->assertTrue($users(['with' => ['roles']])->first()->relationLoaded('roles'));
+        $this->assertFalse($users(['with' => ['tokens', 'notifications']])->first()->relationLoaded('tokens'));
+        // The same call sorts, with name ascending by default.
+        $this->assertSame(['Abe', 'Zoe'], $users([])->pluck('name')->all());
+        $this->assertSame(['Zoe', 'Abe'], $users(['sort' => ['name' => 'desc']])->pluck('name')->all());
+    }
+
     public function test_the_user_seeder_creates_spanish_users_with_roles(): void
     {
-        $this->seed(\Database\Seeders\UserSeeder::class);
+        $this->seed(UserSeeder::class);
 
         $this->assertSame(50, User::query()->count());
         $this->assertGreaterThan(0, User::query()->byRole(RoleName::Admin)->count());

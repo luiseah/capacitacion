@@ -4,13 +4,14 @@ namespace Tests\Feature;
 
 use Database\Seeders\AgreementSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Module\AcademicMobility\Core\Enums\AgreementActivity;
-use Module\AcademicMobility\Core\Enums\AgreementParties;
-use Module\AcademicMobility\Core\Enums\AgreementRenewal;
-use Module\AcademicMobility\Core\Enums\AgreementStatus;
-use Module\AcademicMobility\Core\Enums\AgreementType;
-use Module\AcademicMobility\Core\Models\Agreement;
+use Module\AcademicMobility\Core\Enums\MobilityScope;
 use Module\AcademicMobility\Core\Models\Institution;
+use Module\Agreements\Enums\AgreementActivity;
+use Module\Agreements\Enums\AgreementParties;
+use Module\Agreements\Enums\AgreementRenewal;
+use Module\Agreements\Enums\AgreementStatus;
+use Module\Agreements\Enums\AgreementType;
+use Module\Agreements\Models\Agreement;
 use Tests\TestCase;
 
 class AgreementSeederTest extends TestCase
@@ -130,12 +131,12 @@ class AgreementSeederTest extends TestCase
 
         // The scope follows from the institutions: Colombian ones are national, the rest international.
         $local = Institution::local()->country;
-        $this->assertGreaterThan(0, Agreement::query()->byScope(\Module\AcademicMobility\Core\Enums\MobilityScope::National)->count());
-        $this->assertGreaterThan(0, Agreement::query()->byScope(\Module\AcademicMobility\Core\Enums\MobilityScope::International)->count());
+        $this->assertGreaterThan(0, Agreement::query()->byScope(MobilityScope::National)->count());
+        $this->assertGreaterThan(0, Agreement::query()->byScope(MobilityScope::International)->count());
         $agreements->each(fn (Agreement $agreement) => $this->assertSame(
             $agreement->partners()->every(fn ($institution) => $institution->country === $local) ? 'national' : 'international',
             $agreement->scope($local)->value,
         ));
-        $this->assertSame($agreements->count(), Agreement::query()->byScope(\Module\AcademicMobility\Core\Enums\MobilityScope::National)->count() + Agreement::query()->byScope(\Module\AcademicMobility\Core\Enums\MobilityScope::International)->count());
+        $this->assertSame($agreements->count(), Agreement::query()->byScope(MobilityScope::National)->count() + Agreement::query()->byScope(MobilityScope::International)->count());
     }
 }

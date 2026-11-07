@@ -3,24 +3,25 @@
 namespace App\Models\Builders;
 
 use App\Enums\RoleName;
+use App\Enums\UserRelation;
 use App\Models\User;
-use App\Support\SearchInput;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Module\Pagination\PaginatedBuilder;
+use Module\Pagination\Search\SearchInput;
 
 /**
  * Query builder of {@see User}: named, reusable constraints for searching users.
  *
- * @extends Builder<User>
+ * @extends PaginatedBuilder<User>
  */
-class UserBuilder extends Builder
+class UserBuilder extends PaginatedBuilder
 {
     /**
      * Apply the list filters present in the request: `search` (name or email)
-     * and `role`. Missing or blank filters are ignored.
+     * and `role`, then `with` (relations, see {@see relationEnum()}) and `sort`. Missing or blank filters are ignored.
      *
-     * @param  Request  $request
      * @return $this
      */
     public function applyFilters(Request $request): self
@@ -32,6 +33,9 @@ class UserBuilder extends Builder
         if ($request->has('role')) {
             $this->byRole($request->enum('role', RoleName::class));
         }
+
+        $this->loadRelations($request->array('with'));
+        $this->sort($request);
 
         return $this;
     }
@@ -47,12 +51,10 @@ class UserBuilder extends Builder
         foreach (SearchInput::tokens((string) $text) as $token) {
             $term = SearchInput::like($token);
 
-            $this->where(function (Builder $q) use ($term) {
+            $this->where(function (Builder $q) use ($term, $token) {
                 $q->whereRaw("cast(id as text) like ? escape '\\'", [$term])
-                    ->orWhereRaw("search(name) like search(?) escape '\\'", [$term])
-                    ->orWhereRaw("search(lastname) like search(?) escape '\\'", [$term])
-                    ->orWhereRaw("replace(phone, ' ', '') like replace(?, ' ', '') escape '\\'", [$term])
-                    ->orWhereRaw("search(email) like search(?) escape '\\'", [$term]);
+                    ->orWhereSearch(['name', 'lastname', 'email'], $token)
+                    ->orWhereRaw("replace(phone, ' ', '') like replace(?, ' ', '') escape '\\'", [$term]);
             });
         }
 
@@ -72,47 +74,31 @@ class UserBuilder extends Builder
         return $this->whereNotNull('email_verified_at');
     }
 
-    /**
-     * Eager load what the list representations need.
-     */
-    public function withListRelations(): static
+    protected function relationEnum(): ?string
     {
-        return $this->with('roles');
+        return UserRelation::class;
+    }
+
+    protected function sortable(): array
+    {
+        return [
+            'name' => fn ($query, string $direction) => $query->orderBy(DB::raw('lower(name)'), $direction),
+            'lastname' => fn ($query, string $direction) => $query->orderBy(DB::raw('lower(lastname)'), $direction),
+            'email' => 'email',
+            'phone' => 'phone',
+            'created_at' => 'created_at',
+            // Verified vs unverified; `desc` lists verified users first.
+            'verified' => fn ($query, string $direction) => $query->orderByRaw('(email_verified_at is null) '.($direction === 'desc' ? 'asc' : 'desc')),
+        ];
+    }
+
+    protected function defaultOrder(): void
+    {
+        $this->orderBy(DB::raw('lower(name)'));
     }
 
     public function alphabetical(): static
     {
         return $this->orderBy('name')->orderBy('lastname')->orderBy('id');
-    }
-
-    /**
-     * Order by the `sort` map of the request (`sort[name]=asc&sort[created_at]=desc`).
-     * Unknown columns are ignored, directions other than `desc` mean `asc`, and
-     * it defaults to name ascending. Ties are broken by id so pages stay stable.
-     *
-     * @param  Request  $request
-     * @return $this
-     */
-    public function sort(Request $request): self
-    {
-        $sort = $request->input('sort');
-        $orders = is_array($sort) && $sort !== [] ? $sort : ['name' => 'asc'];
-
-        foreach ($orders as $name => $value) {
-            $direction = strtolower((string) $value) === 'desc' ? 'desc' : 'asc';
-
-            match ($name) {
-                'name' => $this->orderBy(DB::raw('lower(name)'), $direction),
-                'lastname' => $this->orderBy(DB::raw('lower(lastname)'), $direction),
-                'email' => $this->orderBy('email', $direction),
-                // Verified vs unverified; `desc` lists verified users first.
-                'verified' => $this->orderByRaw('(email_verified_at is null) '.($direction === 'desc' ? 'asc' : 'desc')),
-                'phone' => $this->orderBy('phone', $direction),
-                'created_at' => $this->orderBy('created_at', $direction),
-                default => $this,
-            };
-        }
-
-        return $this->orderBy('id');
     }
 }

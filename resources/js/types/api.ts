@@ -87,6 +87,8 @@ export type RequestPayload = {
 
 export type RequestIndexParams = {
     page?: number;
+    /** Relations to include: the ones the list shows (`type`, `requester`). */
+    with?: string[];
 };
 
 export type ApiUser = {
@@ -110,6 +112,8 @@ export type UserIndexParams = {
     page?: number;
     search?: string;
     role?: string;
+    /** Relations to include (`roles`). */
+    with?: string[];
     sort?: Partial<Record<UserSortColumn, SortDirection>>;
 };
 

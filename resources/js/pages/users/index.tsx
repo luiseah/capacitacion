@@ -42,6 +42,7 @@ export default function UsersIndex() {
         page,
         search: debouncedSearch || undefined,
         role: role || undefined,
+        with: ['roles'],
         sort: { [sort.column]: sort.direction },
     });
 

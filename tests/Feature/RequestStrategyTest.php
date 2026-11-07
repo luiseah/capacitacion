@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Enums\RequestStatus;
 use App\Enums\RequestTypeKey;
 use App\Http\Requests\Requests\ServiceRequestFormRequest;
-use App\Models\Builders\ServiceRequestBuilder;
 use App\Models\BookReservationRequest;
+use App\Models\Builders\ServiceRequestBuilder;
 use App\Models\GradeChangeRequest;
 use App\Models\PurchaseRequest;
 use App\Models\RequestType;
@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\WorkPermitRequest;
 use Database\Seeders\RequestTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Tests\TestCase;
 
 class RequestStrategyTest extends TestCase
@@ -125,7 +126,13 @@ class RequestStrategyTest extends TestCase
 
         $this->assertSame(['Mine'], ServiceRequest::query()->visibleTo($owner)->pluck('title')->all());
         $this->assertSame(['Theirs'], ServiceRequest::query()->ofType(RequestTypeKey::WorkPermit)->pluck('title')->all());
-        $this->assertTrue(ServiceRequest::query()->withListRelations()->first()->relationLoaded('type'));
+        // Relations load only when the request asks for them, and only the allowed ones.
+        $asked = fn (array $with) => ServiceRequest::query()->applyFilters(Request::create('/', 'GET', ['with' => $with]))->first();
+        $this->assertTrue($asked(['type', 'requester'])->relationLoaded('type'));
+        $this->assertTrue($asked(['type', 'requester'])->relationLoaded('requester'));
+        $this->assertFalse($asked(['requester'])->relationLoaded('type'));
+        $this->assertFalse($asked(['password', 'events'])->relationLoaded('events'));
+        $this->assertFalse(ServiceRequest::query()->applyFilters(new Request)->first()->relationLoaded('type'));
     }
 
     public function test_factories_build_requests_and_concrete_models_keep_their_scope_and_type_stamp(): void

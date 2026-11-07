@@ -1,0 +1,79 @@
+{
+    "name": "module/agreements",
+    "description": "Agreements (convenios) between institutions for Laravel: types, parties, status, validity, signed document and activities. Plugs into module/academic-mobility.",
+    "keywords": [
+        "laravel",
+        "agreements",
+        "convenios",
+        "package"
+    ],
+    "license": "MIT",
+    "type": "library",
+    "require": {
+        "php": "^8.3",
+        "illuminate/contracts": "^12.0|^13.0",
+        "illuminate/database": "^12.0|^13.0",
+        "illuminate/http": "^12.0|^13.0",
+        "illuminate/routing": "^12.0|^13.0",
+        "illuminate/support": "^12.0|^13.0",
+        "module/academic-mobility": "@dev",
+        "module/api-response": "@dev",
+        "module/pagination": "@dev"
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../academic-mobility",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../api-response",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../pagination",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "suggest": {
+        "inertiajs/inertia-laravel": "Required for the pages of the agreements (routes.web).",
+        "spatie/laravel-permission": "Any Gate-compatible ACL works; Spatie permissions named like the AgreementAbility values do out of the box."
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0|^11.0",
+        "phpunit/phpunit": "^11.5|^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Module\\Agreements\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Module\\Agreements\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Module\\Agreements\\AgreementsServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

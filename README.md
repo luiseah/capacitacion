@@ -280,6 +280,11 @@ lang/                     Traducciones (es) de la aplicación
 
 El módulo de movilidad tiene su propio README en [`packages/academic-mobility/README.md`](packages/academic-mobility/README.md).
 
+## Guías de buenas prácticas
+
+- [Control de acceso (ACL) con Spatie](README-acl.md): roles, permisos y policies en el backend y el frontend, con pruebas y errores comunes.
+- [Base de datos y API REST](README-base-de-datos-y-api.md): cómo nombrar tablas siguiendo el estándar de Laravel y cómo separar las vistas web de la API.
+
 ## Problemas frecuentes
 
 - **`Connection refused` con Redis o Horizon se reinicia:** `REDIS_HOST` debe ser `cache`, no `127.0.0.1`, y `REDIS_PASSWORD` debe estar en `.env`.

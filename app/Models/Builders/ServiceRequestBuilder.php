@@ -4,18 +4,21 @@ namespace App\Models\Builders;
 
 use App\Enums\PermissionName;
 use App\Enums\RequestTypeKey;
+use App\Enums\ServiceRequestRelation;
 use App\Models\RequestType;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Module\Pagination\PaginatedBuilder;
 
 /**
  * Query builder of {@see ServiceRequest}: named, reusable constraints so
  * controllers read as intent instead of repeating `where` clauses.
  *
- * @extends Builder<ServiceRequest>
+ * @extends PaginatedBuilder<ServiceRequest>
  */
-class ServiceRequestBuilder extends Builder
+class ServiceRequestBuilder extends PaginatedBuilder
 {
     /**
      * Only the requests the user may see: their own, unless they can index every request.
@@ -40,11 +43,28 @@ class ServiceRequestBuilder extends Builder
     }
 
     /**
-     * Eager load what the list representations need.
+     * The list options of the request: `with` (relations, see {@see relationEnum()}) and `sort`.
      */
-    public function withListRelations(): static
+    public function applyFilters(Request $request): static
     {
-        return $this->with(['type', 'requester']);
+        $this->loadRelations($request->array('with'));
+
+        return $this->sort($request);
+    }
+
+    protected function relationEnum(): ?string
+    {
+        return ServiceRequestRelation::class;
+    }
+
+    protected function sortable(): array
+    {
+        return ['created_at' => 'created_at', 'status' => 'status', 'priority' => 'priority'];
+    }
+
+    protected function defaultOrder(): void
+    {
+        $this->latest();
     }
 
     public function newest(): static

@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Module\AcademicMobility\Core\Models\Agreement;
 use Module\AcademicMobility\Core\Models\Institution;
+use Module\Agreements\Models\Agreement;
 
 /**
  * Demo agreements (convenios) of the partner institutions with the local one: each institution has

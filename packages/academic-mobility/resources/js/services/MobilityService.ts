@@ -1,9 +1,6 @@
 import AbstractService from '@/services/AbstractService';
 import type ResponseService from '@/services/ResponseService';
 import type {
-    Agreement,
-    AgreementIndexParams,
-    AgreementPayload,
     Institution,
     InstitutionIndexParams,
     InstitutionPayload,
@@ -84,74 +81,6 @@ export class MobilityService extends AbstractService {
             method: 'GET',
             url: `/api/academic-mobility/mobilities/${encodeURIComponent(id)}`,
             signal: options.signal,
-        });
-    }
-
-    /** The agreements of an institution with the local one (the latest first). */
-    public async agreementsOf(institutionId: string, options: ReadOptions = {}): Promise<ResponseService<Agreement[]>> {
-        return this.client.request({
-            method: 'GET',
-            url: '/api/academic-mobility/mobilities/agreements',
-            params: { institution_id: institutionId },
-            signal: options.signal,
-        });
-    }
-
-    public async agreements(
-        params: AgreementIndexParams = {},
-        options: ReadOptions = {},
-    ): Promise<ResponseService<Agreement[], PaginationMeta>> {
-        return this.client.paginated<Agreement>({
-            method: 'GET',
-            url: '/api/academic-mobility/agreements',
-            params,
-            signal: options.signal,
-        });
-    }
-
-    public async agreement(id: string, options: ReadOptions = {}): Promise<ResponseService<Agreement>> {
-        return this.client.request({
-            method: 'GET',
-            url: `/api/academic-mobility/agreements/${encodeURIComponent(id)}`,
-            signal: options.signal,
-        });
-    }
-
-    public async storeAgreement(payload: AgreementPayload): Promise<ResponseService<Agreement>> {
-        return this.client.request({ method: 'POST', url: '/api/academic-mobility/agreements', data: payload });
-    }
-
-    public async updateAgreement(id: string, payload: AgreementPayload): Promise<ResponseService<Agreement>> {
-        return this.client.request({
-            method: 'PUT',
-            url: `/api/academic-mobility/agreements/${encodeURIComponent(id)}`,
-            data: payload,
-        });
-    }
-
-    /** Keeps the signed document (a PDF) of an agreement, replacing the one it had. */
-    public async uploadAgreementDocument(id: string, file: File): Promise<ResponseService<Agreement>> {
-        const data = new FormData();
-        data.append('document', file);
-
-        return this.client.request({
-            method: 'POST',
-            url: `/api/academic-mobility/agreements/${encodeURIComponent(id)}/document`,
-            data,
-        });
-    }
-
-    public async removeAgreementDocument(id: string): Promise<ResponseService> {
-        return this.client.request({
-            method: 'DELETE',
-            url: `/api/academic-mobility/agreements/${encodeURIComponent(id)}/document`,
-        });
-    }
-
-    public async destroyAgreement(id: string): Promise<ResponseService> {
-        return this.client.request({
-            method: 'DELETE',
-            url: `/api/academic-mobility/agreements/${encodeURIComponent(id)}`,
         });
     }
 
@@ -275,8 +204,5 @@ export class MobilityService extends AbstractService {
         });
     }
 }
-
-/** Where the signed document of an agreement is downloaded from. */
-export const agreementDocumentUrl = (id: string): string => `/api/academic-mobility/agreements/${encodeURIComponent(id)}/document`;
 
 export const mobilityService = new MobilityService();

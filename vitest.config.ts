@@ -10,6 +10,9 @@ export default defineConfig({
             '@academic': fileURLToPath(
                 new URL('./packages/academic-mobility/resources/js', import.meta.url),
             ),
+            '@agreements': fileURLToPath(
+                new URL('./packages/agreements/resources/js', import.meta.url),
+            ),
         },
     },
     test: {

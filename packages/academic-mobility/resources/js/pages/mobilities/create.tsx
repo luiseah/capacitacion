@@ -33,9 +33,8 @@ import { firstErrors } from '@/lib/request-payload';
 import { cn } from '@/lib/utils';
 import { ApiError } from '@/services';
 import { useCreateMobility, useMobilityOptions, useParticipants } from '@academic/hooks/use-mobilities';
-import { useAgreementsOf } from '@academic/hooks/use-agreements';
 import { useRequirementsPreview } from '@academic/hooks/use-requirements';
-import { AgreementList } from '@academic/components/agreement-list';
+import { MobilitySlot } from '@academic/extensions';
 import { RequirementList } from '@academic/components/requirement-list';
 import { InstitutionPicker } from '@academic/components/institution-picker';
 import { VisitorFormDialog } from '@academic/components/visitor-form-dialog';
@@ -122,8 +121,6 @@ export default function MobilitiesCreate() {
     const visitorForm = direction === 'incoming' && kind !== '' ? options?.participant_forms.incoming?.[kind] : undefined;
     // What this kind of mobility will have to bring: the sum of the catalog's entries that match.
     const { data: requirements, isPending: loadingRequirements } = useRequirementsPreview(direction, chosenScope, kind);
-    // The agreements with the chosen institution: what already binds both.
-    const { data: agreements, isPending: loadingAgreements } = useAgreementsOf(institutionId);
     const sourceReady = direction === 'outgoing' || (direction === 'incoming' && institutionId !== '');
     const source = `${direction}|${direction === 'incoming' ? institutionId : ''}|${kind}`;
     // The signed-in user's own profiles of this kind ("Me") only apply to the university's own people.
@@ -302,32 +299,14 @@ export default function MobilitiesCreate() {
                                 <InputError message={errors.route} />
 
                                 {institution && (
-                                    <div className="mt-2 space-y-2">
-                                        <p className="text-sm font-medium">
-                                            {t('Agreements with :name', { name: institution.name })}
-                                        </p>
-                                        {loadingAgreements ? (
-                                            <p className="text-sm text-muted-foreground">{t('Loading…')}</p>
-                                        ) : (
-                                            <>
-                                                {!(agreements ?? []).some((agreement) => agreement.status === 'active') && (
-                                                    <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
-                                                        {t('There is no agreement in force with this institution.')}
-                                                    </p>
-                                                )}
-                                                <p className="text-xs text-muted-foreground">
-                                                    {t('Choose the agreement this mobility is made under (optional).')}
-                                                </p>
-                                                <AgreementList
-                                                    agreements={agreements ?? []}
-                                                    empty={t('This institution has no agreements with :local.', { local: local.name })}
-                                                    selectedId={agreementId}
-                                                    onSelect={(chosen) => setAgreementId(chosen?.id ?? null)}
-                                                />
-                                                <InputError message={errors.agreement_id} />
-                                            </>
-                                        )}
-                                    </div>
+                                    <MobilitySlot
+                                        name="create.partner"
+                                        institution={institution}
+                                        local={local}
+                                        value={agreementId}
+                                        onChange={setAgreementId}
+                                        error={errors.agreement_id}
+                                    />
                                 )}
                             </div>
 

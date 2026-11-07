@@ -13,11 +13,11 @@ use Module\AcademicMobility\Core\Enums\MobilityDirection;
 use Module\AcademicMobility\Core\Enums\MobilityScope;
 use Module\AcademicMobility\Core\Enums\MobilityStatus;
 use Module\AcademicMobility\Core\Enums\ParticipantKind;
-use Module\AcademicMobility\Core\Models\Agreement;
 use Module\AcademicMobility\Core\Models\Institution;
 use Module\AcademicMobility\Core\Models\Mobility;
 use Module\AcademicMobility\Core\ValueObjects\ParticipantReference;
 use Module\AcademicMobility\Facades\AcademicMobility;
+use Module\Agreements\Models\Agreement;
 
 /**
  * Demo mobilities: every combination of direction (outgoing, incoming), scope (national, international)

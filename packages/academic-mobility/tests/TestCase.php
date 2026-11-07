@@ -5,6 +5,7 @@ namespace Module\AcademicMobility\Tests;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Module\AcademicMobility\AcademicMobilityServiceProvider;
 use Module\ApiResponse\ApiResponseServiceProvider;
+use Module\Pagination\PaginationServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
@@ -14,7 +15,7 @@ abstract class TestCase extends Orchestra
     protected function getPackageProviders($app): array
     {
         // Not listed by hand in a real app: Laravel auto-discovers it.
-        return [ApiResponseServiceProvider::class, AcademicMobilityServiceProvider::class];
+        return [ApiResponseServiceProvider::class, PaginationServiceProvider::class, AcademicMobilityServiceProvider::class];
     }
 
     protected function defineEnvironment($app): void

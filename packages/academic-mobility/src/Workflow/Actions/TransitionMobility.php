@@ -6,7 +6,6 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Module\AcademicMobility\Core\Enums\MobilityStatus;
 use Module\AcademicMobility\Core\Exceptions\InvalidTransition;
 use Module\AcademicMobility\Core\Models\Mobility;
-use Module\AcademicMobility\Core\Persistence\MobilityRepository;
 use Module\AcademicMobility\Workflow\Events\MobilityStatusChanged;
 
 /**
@@ -16,7 +15,6 @@ use Module\AcademicMobility\Workflow\Events\MobilityStatusChanged;
 class TransitionMobility
 {
     public function __construct(
-        private readonly MobilityRepository $repository,
         private readonly Dispatcher $events,
     ) {}
 
@@ -32,7 +30,7 @@ class TransitionMobility
         }
 
         $mobility->status = $to;
-        $this->repository->save($mobility);
+        $mobility->save();
 
         $this->events->dispatch(new MobilityStatusChanged($mobility, $from, $to));
 

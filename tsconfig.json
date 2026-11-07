@@ -15,7 +15,8 @@
         "types": ["vite/client"],
         "paths": {
             "@/*": ["./resources/js/*"],
-            "@academic/*": ["./packages/academic-mobility/resources/js/*"]
+            "@academic/*": ["./packages/academic-mobility/resources/js/*"],
+            "@agreements/*": ["./packages/agreements/resources/js/*"]
         }
     },
     "include": [
@@ -23,6 +24,8 @@
         "resources/js/**/*.tsx",
         "resources/js/**/*.d.ts",
         "packages/academic-mobility/resources/js/**/*.ts",
-        "packages/academic-mobility/resources/js/**/*.tsx"
+        "packages/academic-mobility/resources/js/**/*.tsx",
+        "packages/agreements/resources/js/**/*.ts",
+        "packages/agreements/resources/js/**/*.tsx"
     ]
 }

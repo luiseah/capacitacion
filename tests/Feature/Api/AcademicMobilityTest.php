@@ -303,7 +303,7 @@ class AcademicMobilityTest extends TestCase
 
         // Each kind gets its own kind of affiliation, and outgoing has no samples.
         $this->assertNotEmpty($sample('professor')->assertOk()->json('data.affiliation'));
-        $this->getJson("/api/academic-mobility/mobilities/participants/sample?type=student&direction=outgoing")->assertUnprocessable();
+        $this->getJson('/api/academic-mobility/mobilities/participants/sample?type=student&direction=outgoing')->assertUnprocessable();
     }
 
     public function test_an_admin_manages_agreements_and_sees_them_when_choosing_the_institution(): void
@@ -312,28 +312,28 @@ class AcademicMobilityTest extends TestCase
         Institution::create(['name' => 'Local', 'country' => 'CO', 'is_local' => true]);
         $sorbonne = Institution::create(['name' => 'Sorbonne', 'country' => 'FR']);
 
-        $framework = $this->postJson('/api/academic-mobility/agreements', [
+        $framework = $this->postJson('/api/agreements', [
             'institution_id' => $sorbonne->id, 'type' => 'framework', 'status' => 'active', 'name' => 'Convenio marco', 'reference' => 'CONV-1',
             'starts_on' => today()->subYear()->toDateString(), 'activities' => ['training', 'research', 'extension', 'administrative', 'other'],
             'other_activity' => 'Doble titulación',
         ])->assertCreated()->assertJsonPath('data.status', 'active')->assertJsonCount(5, 'data.activities')->json('data.id');
 
-        $this->postJson('/api/academic-mobility/agreements', [
+        $this->postJson('/api/agreements', [
             'institution_id' => $sorbonne->id, 'type' => 'specific', 'status' => 'active', 'framework_id' => $framework, 'name' => 'Convenio de movilidad',
             'starts_on' => today()->subYears(3)->toDateString(), 'ends_on' => today()->subYear()->toDateString(), 'activities' => ['training'],
         ])->assertCreated()->assertJsonPath('data.status', 'expired')->assertJsonPath('data.framework.name', 'Convenio marco');
 
         // Choosing the institution in the mobility form shows what binds both, the latest first.
-        $this->getJson('/api/academic-mobility/mobilities/agreements?institution_id='.$sorbonne->id)
+        $this->getJson('/api/agreements/institution?institution_id='.$sorbonne->id)
             ->assertOk()
             ->assertJsonPath('data.*.name', ['Convenio marco', 'Convenio de movilidad'])
             ->assertJsonPath('data.*.status', ['active', 'expired']);
 
-        $this->getJson('/api/academic-mobility/agreements?status=active&activity=extension')->assertJsonCount(1, 'data');
+        $this->getJson('/api/agreements?status=active&activity=extension')->assertJsonCount(1, 'data');
 
         // The members without the permission cannot.
         Sanctum::actingAs(User::factory()->create()->assignRole(RoleName::Requester->value));
-        $this->getJson('/api/academic-mobility/agreements')->assertForbidden();
-        $this->getJson('/api/academic-mobility/mobilities/agreements?institution_id='.$sorbonne->id)->assertForbidden();
+        $this->getJson('/api/agreements')->assertForbidden();
+        $this->getJson('/api/agreements/institution?institution_id='.$sorbonne->id)->assertForbidden();
     }
 }

@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\ExternalParticipant;
 use App\Models\ServiceRequest;
-use App\Models\Student;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -12,11 +11,11 @@ use Illuminate\Support\Facades\DB;
 use Module\AcademicMobility\Core\Enums\MobilityDirection;
 use Module\AcademicMobility\Core\Enums\MobilityScope;
 use Module\AcademicMobility\Core\Enums\MobilityStatus;
-use Module\AcademicMobility\Core\Models\Agreement;
 use Module\AcademicMobility\Core\Models\Institution;
 use Module\AcademicMobility\Core\Models\Mobility;
 use Module\AcademicMobility\Core\Models\MobilityRequirement;
 use Module\AcademicMobility\Core\Models\Requirement;
+use Module\Agreements\Models\Agreement;
 use Tests\TestCase;
 
 /**

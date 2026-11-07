@@ -70,8 +70,7 @@ $mobility->scope;                      // International (the partner is in anoth
 AcademicMobility::transition($mobility, MobilityStatus::Submitted);
 ```
 
-Replace storage by binding `Core\Persistence\MobilityRepository`; use your own model with
-`config('academic-mobility.models.mobility')` (it must extend the package's `Mobility`). Listen to
+Use your own model with `config('academic-mobility.models.mobility')` (it must extend the package's `Mobility`). Listen to
 `MobilityCreated` and `MobilityStatusChanged` to integrate.
 
 ## Institutions and the route of a mobility
