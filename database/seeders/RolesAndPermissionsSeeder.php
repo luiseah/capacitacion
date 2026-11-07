@@ -23,6 +23,10 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::findOrCreate($permission->value, 'web');
         }
 
+        // The registrar keeps the list it loaded: after creating permissions (a fresh database has none) it has to
+        // read them again, or the roles cannot find them.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         foreach (RoleName::cases() as $role) {
             Role::findOrCreate($role->value, 'web')
                 ->syncPermissions(array_map(fn (PermissionName $p) => $p->value, $role->permissions()));
