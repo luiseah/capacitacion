@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, ClipboardList, FolderGit2, LayoutGrid } from 'lucide-react';
+import { BookOpen, Building2, ClipboardCheck, ClipboardList, FileSignature, FolderGit2, GraduationCap, LayoutGrid, Users } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -13,8 +13,17 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import {
+    Agreements as AgreementsPermission,
+    Institutions as InstitutionsPermission,
+    Mobilities as MobilitiesPermission,
+    Requirements as RequirementsPermission,
+    Users as UsersPermission,
+} from '@/generated/permissions';
+import { usePermissions } from '@/hooks/use-permissions';
 import { dashboard } from '@/routes';
 import { index as requestsIndex } from '@/routes/requests';
+import { index as usersIndex } from '@/routes/users';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -30,6 +39,36 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
+const usersNavItem: NavItem = {
+    title: 'Users',
+    href: usersIndex(),
+    icon: Users,
+};
+
+const mobilitiesNavItem: NavItem = {
+    title: 'Academic mobility',
+    href: '/academic-mobility/mobilities',
+    icon: GraduationCap,
+};
+
+const institutionsNavItem: NavItem = {
+    title: 'Institutions',
+    href: '/academic-mobility/institutions',
+    icon: Building2,
+};
+
+const agreementsNavItem: NavItem = {
+    title: 'Agreements',
+    href: '/academic-mobility/agreements',
+    icon: FileSignature,
+};
+
+const requirementsNavItem: NavItem = {
+    title: 'Requirements',
+    href: '/academic-mobility/requirements',
+    icon: ClipboardCheck,
+};
+
 const footerNavItems: NavItem[] = [
     {
         title: 'Repository',
@@ -44,6 +83,16 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { can } = usePermissions();
+    const navItems = [
+        ...mainNavItems,
+        ...(can(MobilitiesPermission.index) ? [mobilitiesNavItem] : []),
+        ...(can(InstitutionsPermission.index) ? [institutionsNavItem] : []),
+        ...(can(AgreementsPermission.index) ? [agreementsNavItem] : []),
+        ...(can(RequirementsPermission.index) ? [requirementsNavItem] : []),
+        ...(can(UsersPermission.index) ? [usersNavItem] : []),
+    ];
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -59,7 +108,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={navItems} />
             </SidebarContent>
 
             <SidebarFooter>

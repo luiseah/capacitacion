@@ -8,6 +8,26 @@ export const Role = {
 
 export type Role = (typeof Role)[keyof typeof Role];
 
+export const Agreements = {
+    create: 'agreements.create',
+    destroy: 'agreements.destroy',
+    index: 'agreements.index',
+    update: 'agreements.update',
+} as const;
+
+export const Institutions = {
+    create: 'institutions.create',
+    destroy: 'institutions.destroy',
+    index: 'institutions.index',
+    update: 'institutions.update',
+} as const;
+
+export const Mobilities = {
+    create: 'mobilities.create',
+    index: 'mobilities.index',
+    show: 'mobilities.show',
+} as const;
+
 export const Requests = {
     create: 'requests.create',
     destroy: 'requests.destroy',
@@ -16,4 +36,18 @@ export const Requests = {
     update: 'requests.update',
 } as const;
 
-export type Permission = (typeof Requests)[keyof typeof Requests];
+export const Requirements = {
+    create: 'requirements.create',
+    destroy: 'requirements.destroy',
+    index: 'requirements.index',
+    update: 'requirements.update',
+} as const;
+
+export const Users = {
+    destroy: 'users.destroy',
+    index: 'users.index',
+    show: 'users.show',
+    update: 'users.update',
+} as const;
+
+export type Permission = (typeof Agreements)[keyof typeof Agreements] | (typeof Institutions)[keyof typeof Institutions] | (typeof Mobilities)[keyof typeof Mobilities] | (typeof Requests)[keyof typeof Requests] | (typeof Requirements)[keyof typeof Requirements] | (typeof Users)[keyof typeof Users];

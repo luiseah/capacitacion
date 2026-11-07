@@ -16,10 +16,11 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        // Implicitly grant "Super Admin" role all permissions
-        // This works in the app by using gate-related functions like auth()->user->can() and @can()
-        Gate::before(function ($user, $ability) {
-            return $user->hasRole(RoleName::Admin) ? true : null;
+        // Implicitly grant the admin role every permission (`$user->can('users.index')`, `@can`).
+        // Checks against a model or class (`Gate::authorize('delete', $user)`) are left to
+        // their policy, so its own rules (e.g. nobody deletes themselves) apply to admins too.
+        Gate::before(function ($user, $ability, array $arguments) {
+            return $arguments === [] && $user->hasRole(RoleName::Admin) ? true : null;
         });
 
     }
